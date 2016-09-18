@@ -1,11 +1,16 @@
 var fs = require('fs-extra');
 var os = require('os');
 var path = require("path");
-var host = require("./Host");
-var atomicRoot = host.atomicRoot;
 var glob = require('glob');
-
 var Tslint = require("tslint");
+var fso = require('fs');
+var spawnSync = require('child_process').spawnSync;
+
+var host = require("./Host");
+var config = require('./BuildConfig');
+
+var atomicRoot = config.atomicRoot;
+var jsDocFolder = config.artifactsRoot + "Build/JSDoc/";
 
 namespace('build', function() {
 
@@ -16,7 +21,7 @@ namespace('build', function() {
 
         console.log("TSLINT: Linting files in " + fileMask);
         var lintConfig = JSON.parse(fs.readFileSync("./Script/tslint.json"));
-        var options = {
+        var tslintConfig = {
             configuration: lintConfig,
             formatter: "prose"
         };
@@ -31,7 +36,7 @@ namespace('build', function() {
 
                 var contents = fs.readFileSync(filename, "utf8");
 
-                var ll = new Tslint(filename, contents, options);
+                var ll = new Tslint(filename, contents, tslintConfig);
                 var result = ll.lint();
                 if (result.failureCount > 0) {
                     lintErrors.push(result.output);
@@ -89,7 +94,7 @@ namespace('build', function() {
       // Compile AtomicNET assemblies
       var cmds = [];
 
-      cmds.push(host.atomicTool + " net compile " + atomicRoot + "Script/AtomicNET/AtomicNETProject.json " + platform + " " + configuration);
+      cmds.push(host.atomicTool + " net compile " + atomicRoot + "Script/AtomicNET/AtomicNETProject.json -platform " + platform + " -config " + configuration);
 
       jake.exec(cmds, function() {
 
@@ -140,22 +145,10 @@ namespace('build', function() {
 
         var modules = host.getScriptModules();
         var bindCmd = host.atomicTool + " bind \"" + atomicRoot + "\" ";
-        var node;
+        var node = host.node;
         var tsc = "./Build/node_modules/typescript/lib/tsc";
         var tslint = "./Build/node_modules/tslint/lib/tslint-cli";
         var dtsGenerator = "./Build/node_modules/dts-generator/bin/dts-generator";
-
-        switch(os.platform()) {
-            case "win32":
-            node = "Build\\Windows\\node\\node.exe";
-            break;
-            case "darwin":
-            node = "Build/Mac/node/node";
-            break;
-            case "linux":
-            node = "Build/Linux/node/node";
-            break;
-        }
 
         var cmds = [];
         for (var pkgName in modules) {
@@ -206,6 +199,85 @@ namespace('build', function() {
 
 
     });
+
+
+  task('gendocs', {
+    async: true
+    }, function() {
+
+    console.log( "Generating Docs..." );
+
+    fs.copySync(atomicRoot + "Build/Docs/Readme.md", jsDocFolder + "Readme.md");
+    fs.copySync(atomicRoot + "Build/Docs/atomic-theme", jsDocFolder + "atomic-theme");
+
+
+    var typeDoc;
+    if (os.platform() == "win32") {
+        // uses system node for typedoc, which should have as require npm
+        typeDoc = "node_modules\\.bin\\typedoc.cmd";
+    }
+    else
+        typeDoc = host.node + " ./node_modules/.bin/typedoc";
+
+    // tsdoc is having problems when name has spaces on Windows and Linux, tried quoting/escaping
+    // what should happen here is instead of command line use a json config file (or maybe new version of tsdoc fixes this)
+    var name = "Atomic-Game-Engine";
+
+    cmds = [
+      "cd " + jsDocFolder + " && echo {} > package.json", // newer versions of npm require package.json to be in the folder or else it searches up the heirarchy
+      "cd " + jsDocFolder + " && npm install typedoc",
+      "cd " + jsDocFolder + " && " + typeDoc + " --out out " + config.atomicRoot +
+              "Script/TypeScript/dist/Atomic.d.ts --module commonjs --includeDeclarations --mode file --theme atomic-theme --name " +
+              name + " --readme ./Readme.md"
+    ];
+
+    jake.exec(cmds, function() {
+
+      common.cleanCreateDir( config.toolDataFolder + "Docs");
+
+      fs.copySync(jsDocFolder + "out", config.toolDataFolder + "Docs/JSDocs");
+
+      complete();
+
+      console.log( "completed installing API documentation" );
+
+    }, {
+
+      printStdout: true
+
+    });
+
+  });
+
+
+  task('genexamples', {
+    async: true
+    }, function() {
+
+    console.log( "Generating Examples..." );
+
+    common.cleanCreateDir( config.toolDataFolder + "AtomicExamples");
+
+    cmds = [
+      "git clone https://github.com/AtomicGameEngine/AtomicExamples " + config.toolDataFolder + "AtomicExamples",
+    ];
+
+    jake.exec(cmds, function() {
+
+      fs.removeSync( config.toolDataFolder + "AtomicExamples/.git" );
+
+      complete();
+
+      console.log( "completed installing example programs" )
+
+        }, {
+
+      printStdout: true
+
+    });
+
+  });
+
 
 
 }); // end of build namespace

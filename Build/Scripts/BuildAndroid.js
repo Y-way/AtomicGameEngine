@@ -1,10 +1,11 @@
+var os = require('os');
 var fs = require('fs-extra');
 var path = require("path");
 var host = require("./Host");
-var os = require('os');
-var atomicRoot = host.atomicRoot;
+var config = require('./BuildConfig');
 
-var buildDir = host.artifactsRoot + "Build/Android/";
+var atomicRoot = config.atomicRoot;
+var buildDir = config.artifactsRoot + "Build/Android/";
 
 namespace('build', function() {
 
@@ -12,34 +13,33 @@ namespace('build', function() {
         async: true
     }, function() {
 
-        // Clean build
-        common.cleanCreateDir(buildDir);
+        host.setupDirs(!config["noclean"], [buildDir]);
 
         process.chdir(buildDir);
 
         var cmds = [];
 
         if (os.platform() == "win32") {
-            cmds.push(atomicRoot + "Build/Scripts/Windows/CompileAndroid.bat");
+            cmds.push(atomicRoot + "Build/Scripts/Windows/CompileAndroid.bat " + config["config"]);
         }
         else {
-            cmds.push("cmake -G \"Unix Makefiles\" -DCMAKE_TOOLCHAIN_FILE=../../../Build/CMake/Toolchains/android.toolchain.cmake -DCMAKE_BUILD_TYPE=Release ../../../");
+            cmds.push("cmake -G \"Unix Makefiles\" -DCMAKE_TOOLCHAIN_FILE=../../../Build/CMake/Toolchains/android.toolchain.cmake -DCMAKE_BUILD_TYPE="  + config["config"] + " ../../../");
             cmds.push("make -j4");
         }
 
         jake.exec(cmds, function() {
 
-            var editorAppFolder = host.artifactsRoot + (os.platform() == "win32" ? "AtomicEditor/" : "AtomicEditor/AtomicEditor.app/");
+            var editorResourceFolder = config.artifactsRoot + (os.platform() == "win32" ? "AtomicEditor/Resources/" : "AtomicEditor/AtomicEditor.app/Contents/Resources/");
 
             // Install Deployment
             fs.copySync(buildDir + "Source/AtomicPlayer/Application/libAtomicPlayer.so",
-            editorAppFolder + "Contents/Resources/ToolData/Deployment/Android/libs/armeabi-v7a/libAtomicPlayer.so");
+            editorResourceFolder + "ToolData/Deployment/Android/libs/armeabi-v7a/libAtomicPlayer.so");
 
             complete();
 
         }, {
             printStdout: true,
-            breakOnError : false
+            printStderr: true
         });
 
     });

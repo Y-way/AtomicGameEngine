@@ -1,12 +1,24 @@
 var os = require('os');
 var path = require('path');
+var config = require("./BuildConfig");
 
 // get the root folder
-var atomicRoot = path.resolve(__dirname, "../..") + "/";
+var atomicRoot = config.atomicRoot;
+var nodeBinary;
+switch(os.platform()) {
+    case "win32":
+    nodeBinary = atomicRoot + "Build\\Windows\\node\\node.exe";
+    break;
+    case "darwin":
+    nodeBinary = atomicRoot + "Build/Mac/node/node";
+    break;
+    case "linux":
+    nodeBinary = atomicRoot + "Build/Linux/node/node";
+    break;
+}
+
 
 // patch in our local node_modules
-process.env.NODE_PATH = atomicRoot + "Build/node_modules/";
-require('module').Module._initPaths();
 var fs = require('fs-extra');
 
 /// Returns a list of all script packages
@@ -138,6 +150,29 @@ function testCreateDir(directory) {
   }
 }
 
+function setupDirs(clean, createDirs, removeDirs) {
+
+    if (createDirs) {
+        for (var i = 0; i < createDirs.length; i++) {
+
+            var path = createDirs[i];
+            if (!fs.existsSync(path) || clean) {
+                cleanCreateDir(path);
+            }
+        }
+    }
+
+    if (removeDirs) {
+        for (var i = 0; i < removeDirs.length; i++) {
+
+            var path = removeDirs[i];
+            if (fs.existsSync(path) && clean) {
+                testRemoveDir(path);
+            }
+        }
+    }
+
+}
 
 function testRemoveDir(path) {
 
@@ -152,6 +187,7 @@ function testRemoveDir(path) {
 
 exports.atomicRoot = atomicRoot;
 exports.artifactsRoot = atomicRoot + "Artifacts/";
+exports.node = nodeBinary;
 exports.cleanCreateDir = cleanCreateDir;
 exports.testCreateDir = testCreateDir;
 exports.testRemoveDir = testRemoveDir;
@@ -160,3 +196,4 @@ exports.getScriptModules = getScriptModules;
 exports.getGenScriptFilenames = getGenScriptFilenames;
 exports.createGenScriptFiles = createGenScriptFiles;
 exports.getGenScriptRootDir = getGenScriptRootDir;
+exports.setupDirs = setupDirs;

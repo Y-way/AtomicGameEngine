@@ -1,6 +1,5 @@
 
 add_subdirectory(ThirdParty)
-add_subdirectory(AtomicBuildInfo)
 add_subdirectory(Atomic)
 add_subdirectory(AtomicJS)
 
@@ -12,7 +11,7 @@ endif()
 add_subdirectory(AtomicPlayer)
 add_subdirectory(AtomicPlayerJS)
 
-if (NOT IOS AND NOT EMSCRIPTEN)
+if (NOT EMSCRIPTEN)
     add_subdirectory(AtomicApp)
     add_subdirectory(AtomicNET)
 endif()
