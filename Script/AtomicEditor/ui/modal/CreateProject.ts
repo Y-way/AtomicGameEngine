@@ -38,14 +38,20 @@ class CreateProject extends ModalWindow {
 
         this.projectPathField = <Atomic.UIEditField>this.getWidget("project_path");
         this.projectNameField = <Atomic.UIEditField>this.getWidget("project_name");
+        this.appIDField = <Atomic.UIEditField>this.getWidget("app_id");
         this.projectLanguageField = <Atomic.UISelectDropdown>this.getWidget("project_language");
         this.image = <Atomic.UIImageWidget>this.getWidget("project_image");
+
+        this.desktopButton = this.addPlatformButton("desktop", "AtomicEditor/editor/images/Desktop128.png");
+        this.desktopButton.value = 1;
+        this.androidButton = this.addPlatformButton("android", "AtomicEditor/editor/images/Android128.png");
+        this.iosButton = this.addPlatformButton("ios", "AtomicEditor/editor/images/iOS128.png");
+        this.html5Button = this.addPlatformButton("html5", "AtomicEditor/editor/images/HTML5128.png");
 
         if (!projectTemplate.screenshot)
             this.image.visibility = Atomic.UI_WIDGET_VISIBILITY_GONE;
         else
             this.image.image = projectTemplate.screenshot;
-
 
         var fileSystem = Atomic.getFileSystem();
 
@@ -71,6 +77,50 @@ class CreateProject extends ModalWindow {
         this.center();
 
     }
+
+    addPlatformButton(platformName:string, platformLogo:string):Atomic.UIButton {
+
+        var platformcontainer = <Atomic.UILayout>this.getWidget("platformcontainer");
+
+        // IMAGE BUTTON
+
+        var id = platformName;
+        var size = 92;
+
+        var button = new Atomic.UIButton();
+        button.id = id;
+        button.toggleMode = true;
+
+        var lp = new Atomic.UILayoutParams();
+        lp.minWidth = size;
+        lp.minHeight = size;
+
+        button.layoutParams = lp;
+
+        button.gravity = Atomic.UI_GRAVITY_ALL;
+
+        var image = new Atomic.UIImageWidget();
+        image.image = platformLogo;
+        var rect = [0, 0, size, size];
+        image.rect = rect;
+        button.addChild(image);
+
+        if (platformName != "desktop") {
+            var greenplus = new Atomic.UIImageWidget();
+            greenplus.image = "AtomicEditor/editor/images/green_plus.png";
+            rect = [size-18, 2, size-2, 18];
+            greenplus.rect = rect;
+            greenplus.visibility = Atomic.UI_WIDGET_VISIBILITY_INVISIBLE;
+            button.addChild(greenplus);
+            button["greenPlus"] = greenplus;
+        }
+
+        platformcontainer.addChild(button);
+
+        return button;
+
+    }
+
 
     tryProjectCreate(): boolean {
 
@@ -100,17 +150,17 @@ class CreateProject extends ModalWindow {
 
         }
 
-
         folder = Atomic.addTrailingSlash(folder);
         if (!fileSystem.dirExists(folder)) {
 
             // Determine if we have a language template for the selected language.
-            let templateDetail: ProjectTemplates.ProjectTemplateDetail;
             let selectedLanguage = this.projectLanguageField.text;
 
             // Check whether we have a required IDE installed for C# projects
+            var atomicNET = false;
             if (selectedLanguage == "CSharp" || selectedLanguage == "C#") {
 
+                atomicNET = true;
                 if (!ToolCore.netProjectSystem.getIDEAvailable()) {
                     this.hide();
                     EditorUI.getModelOps().showAtomicNETWindow();
@@ -118,18 +168,19 @@ class CreateProject extends ModalWindow {
                 }
             }
 
-            for (let i = 0; i < this.projectTemplate.templates.length; i++) {
-                if (this.projectTemplate.templates[i].language === selectedLanguage) {
-                    templateDetail = this.projectTemplate.templates[i];
+            let templateFolder = "";
+            for (let i = 0; i < this.projectTemplate.languages.length; i++) {
+                if (this.projectTemplate.languages[i] === selectedLanguage) {
+                    templateFolder = this.projectTemplate.folder + selectedLanguage + "/";
                     break;
                 }
             }
 
             // Do the creation!
-            if (templateDetail && fileSystem.dirExists(templateDetail.folder)) {
+            if (templateFolder != "" && fileSystem.dirExists(templateFolder)) {
 
-                if (!fileSystem.copyDir(templateDetail.folder, folder)) {
-                  var message = "Unable to copy folder: " + templateDetail.folder + " to " + folder;
+                if (!fileSystem.copyDir(templateFolder, folder)) {
+                  var message = "Unable to copy folder: " + templateFolder + " to " + folder;
                   EditorUI.showModalError("New Project Editor Error", message);
                   return false;
                 }
@@ -137,6 +188,7 @@ class CreateProject extends ModalWindow {
                 var utils = new Editor.FileUtils();
 
                 utils.createDirs(folder + "Cache");
+                utils.createDirs(folder + "Settings");
 
                 if (!fileSystem.dirExists(folder)) {
                     var message = "Unable to create folder: " + folder + "\n\nPlease choose a different root folder or project name";
@@ -160,6 +212,45 @@ class CreateProject extends ModalWindow {
                     fileSystem.rename(folder + fileResults[0], folder + name + ".userprefs");
                 }
 
+                // create project settings
+
+                var platforms = ["desktop"];
+
+                if (this.androidButton.value == 1) {
+                    platforms.push("android");
+                }
+
+                if (this.iosButton.value == 1) {
+                    platforms.push("ios");
+                }
+
+                var projectSettings = {
+                    name : name,
+                    platforms : platforms
+                }
+
+                var jsonFile = new Atomic.File(folder + "Settings/Project.json", Atomic.FILE_WRITE);
+                if (jsonFile.isOpen()) {
+                    jsonFile.writeString(JSON.stringify(projectSettings, null, 2));
+                    jsonFile.flush();
+                    jsonFile.close();
+                }
+
+                // Generate AtomicNET project if necessary
+                if (atomicNET) {
+                    if (!ProjectTemplates.generateAtomicNETProject({
+                        name: name,
+                        appID : this.appIDField.text,
+                        platforms : platforms,
+                        projectFolder : folder,
+                        projectTemplate : this.projectTemplate
+                    })) {
+                        var message = "Unable to generate AtomicNET project: " + folder;
+                        EditorUI.showModalError("New Project Editor Error", message);
+                        return false;
+                    }
+                }
+
                 this.hide();
 
                 this.sendEvent(EditorEvents.LoadProject, { path: folder });
@@ -169,7 +260,7 @@ class CreateProject extends ModalWindow {
                     "Unable to create project for:",
                     "",
                     `language: ${selectedLanguage}`,
-                    `template: ${templateDetail.folder}`,
+                    `template: ${templateFolder}`,
                     "",
                     "Please choose a different language."
                 ].join("\n");
@@ -178,7 +269,25 @@ class CreateProject extends ModalWindow {
                 return false;
             }
         }
+
         return false;
+    }
+
+    handleLanguageSwitch(selectedLanguage:string) {
+
+        if (selectedLanguage == "CSharp" || selectedLanguage == "C#") {
+
+            this.html5Button["greenPlus"].visibility = Atomic.UI_WIDGET_VISIBILITY_INVISIBLE;
+            this.html5Button.value = 0;
+            this.html5Button.disable();
+
+        } else {
+
+            this.html5Button.enable();
+            this.html5Button["greenPlus"].visibility = this.html5Button.value == 1 ? Atomic.UI_WIDGET_VISIBILITY_VISIBLE : Atomic.UI_WIDGET_VISIBILITY_INVISIBLE;
+
+        }
+
     }
 
     handleWidgetEvent(ev: Atomic.UIWidgetEvent) {
@@ -207,6 +316,23 @@ class CreateProject extends ModalWindow {
                 return true;
 
             }
+        } else if (ev.type == Atomic.UI_EVENT_TYPE_CHANGED) {
+
+            // handle language change
+            if (ev.target.id == "project_language") {
+                this.handleLanguageSwitch(this.projectLanguageField.text);
+            }
+
+            if (ev.target.id == "desktop") {
+
+                // desktop is always selected
+                this.desktopButton.value = 1;
+
+            } else if (ev.target["greenPlus"]) {
+                ev.target["greenPlus"].visibility = ev.target.value == 1 ? Atomic.UI_WIDGET_VISIBILITY_VISIBLE : Atomic.UI_WIDGET_VISIBILITY_INVISIBLE;
+            }
+
+
         }
     }
 
@@ -215,10 +341,11 @@ class CreateProject extends ModalWindow {
      * list.
      */
     populateLanguageSelectionList() {
+
         this.projectLanguageFieldSource.clear();
 
-        this.projectTemplate.templates.forEach(templateDetail => {
-            this.projectLanguageFieldSource.addItem(new Atomic.UISelectItem(templateDetail.language));
+        this.projectTemplate.languages.forEach(language => {
+            this.projectLanguageFieldSource.addItem(new Atomic.UISelectItem(language));
         });
 
         this.projectLanguageField.source = this.projectLanguageFieldSource;
@@ -227,9 +354,15 @@ class CreateProject extends ModalWindow {
 
     projectPathField: Atomic.UIEditField;
     projectNameField: Atomic.UIEditField;
+    appIDField: Atomic.UIEditField;
     projectLanguageField: Atomic.UISelectDropdown;
     projectLanguageFieldSource: Atomic.UISelectItemSource = new Atomic.UISelectItemSource();
     image: Atomic.UIImageWidget;
+
+    desktopButton: Atomic.UIButton;
+    androidButton: Atomic.UIButton;
+    iosButton: Atomic.UIButton;
+    html5Button: Atomic.UIButton;
 
     projectTemplate: ProjectTemplates.ProjectTemplateDefinition;
 }
