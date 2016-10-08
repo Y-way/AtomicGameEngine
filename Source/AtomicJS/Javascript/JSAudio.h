@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2014-2016 THUNDERBEAST GAMES LLC
+// Copyright (c) 2014-2016, THUNDERBEAST GAMES LLC All rights reserved
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,62 +20,16 @@
 // THE SOFTWARE.
 //
 
-class BuildSettings {
+#pragma once
 
-  constructor() {
+#include "JSAPI.h"
 
-  }
+namespace Atomic
+{
 
-}
+class JSVM;
 
-class MacBuildSettings {
-
-    appName:string;
-    package:string;
-    companyName:string;
-    productName:string;
+void jsapi_init_audio(JSVM* vm);
 
 }
 
-class WindowsBuildSettings {   
-    appName: string;
-    packageName: string;
-    companyName: string;
-    productName: string;
-}
-
-class WebBuildSettings {
-    appName: string;
-    packageName: string;
-    companyName: string;
-    productName: string;
-}
-
-class AndroidBuildSettings {
-    appName: string;
-    packageName: string;
-    companyName: string;
-    productName: string;
-    sDKVersion: string;
-    minSDKVersion: string;
-    activityName: string;
-    iconPath: string;
-}
-
-class IOSBuildSettings {
-    appName: string;
-    packageName: string;
-    companyName: string;
-    productName: string;
-    provisionFile: string;
-    appIDPrefix: string;
-}
-
-class LinuxBuildSettings {
-    appName: string;
-    packageName: string;
-    companyName: string;
-    productName: string;
-}
-
-export = BuildSettings;

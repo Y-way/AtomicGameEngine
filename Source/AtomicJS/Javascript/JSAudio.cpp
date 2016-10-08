@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2014-2016 THUNDERBEAST GAMES LLC
+// Copyright (c) 2014-2016, THUNDERBEAST GAMES LLC All rights reserved
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,62 +20,40 @@
 // THE SOFTWARE.
 //
 
-class BuildSettings {
+#include "JSAPI.h"
+#include "JSAudio.h"
 
-  constructor() {
+#include <Atomic/Audio/Sound.h>
+#include <Atomic/Audio/SoundStream.h>
 
-  }
+namespace Atomic
+{
 
+static int Sound_SetData(duk_context* ctx)
+{
+    duk_push_this(ctx);
+    Sound* sound = js_to_class_instance<Sound>(ctx, -1, 0);
+    void* data;
+    duk_size_t dataSize;
+
+    if (!js_check_is_buffer_and_get_data(ctx, -2, &data, &dataSize))
+    {
+        return 0;
+    }
+
+    // copy the buffer into the sound
+    sound->SetData(data, (unsigned)dataSize);
+    return 0;
 }
 
-class MacBuildSettings {
+void jsapi_init_audio(JSVM* vm)
+{
+    duk_context* ctx = vm->GetJSContext();
 
-    appName:string;
-    package:string;
-    companyName:string;
-    productName:string;
-
+    js_class_get_prototype(ctx, "Atomic", "Sound");
+    duk_push_c_function(ctx, Sound_SetData, 1);
+    duk_put_prop_string(ctx, -2, "setData");
+    duk_pop(ctx);
 }
 
-class WindowsBuildSettings {   
-    appName: string;
-    packageName: string;
-    companyName: string;
-    productName: string;
 }
-
-class WebBuildSettings {
-    appName: string;
-    packageName: string;
-    companyName: string;
-    productName: string;
-}
-
-class AndroidBuildSettings {
-    appName: string;
-    packageName: string;
-    companyName: string;
-    productName: string;
-    sDKVersion: string;
-    minSDKVersion: string;
-    activityName: string;
-    iconPath: string;
-}
-
-class IOSBuildSettings {
-    appName: string;
-    packageName: string;
-    companyName: string;
-    productName: string;
-    provisionFile: string;
-    appIDPrefix: string;
-}
-
-class LinuxBuildSettings {
-    appName: string;
-    packageName: string;
-    companyName: string;
-    productName: string;
-}
-
-export = BuildSettings;
