@@ -28,6 +28,7 @@
 #include "../Graphics/Animation.h"
 #include "../Graphics/AnimationController.h"
 #include "../Graphics/AnimationState.h"
+#include "../IO/FileSystem.h"
 #include "../IO/Log.h"
 #include "../IO/MemoryBuffer.h"
 #include "../Resource/ResourceCache.h"
@@ -193,6 +194,12 @@ bool AnimationController::Play(const String& name, unsigned char layer, bool loo
     {
         for (unsigned i = 0; i < animationResources_.Size(); i++)
         {
+            // ATOMIC BEGIN
+            // Check whether the animation resource isn't loaded
+            if (animationResources_[i] == NULL)
+                continue;
+            // ATOMIC END
+
             if (name == animationResources_[i]->GetAnimationName())
             {
                 newAnimation = animationResources_[i];
@@ -412,6 +419,10 @@ bool AnimationController::SetWeight(const String& name, float weight)
     animations_[index].setWeight_ = (unsigned char)(weight * 255.0f);
     animations_[index].setWeightTtl_ = COMMAND_STAY_TIME;
     ++animations_[index].setWeightRev_;
+    // Cancel any ongoing weight fade
+    animations_[index].targetWeight_ = weight;
+    animations_[index].fadeTime_ = 0.0f;
+
     MarkNetworkUpdate();
     return true;
 }
@@ -697,9 +708,9 @@ void AnimationController::SetNetAnimationsAttr(const PODVector<unsigned char>& v
             animations_[index].autoFadeTime_ = (float)buf.ReadUByte() / 64.0f; // 6 bits of decimal precision, max. 4 seconds fade
         else
             animations_[index].autoFadeTime_ = 0.0f;
-        
+
         animations_[index].removeOnCompletion_ = (ctrl & CTRL_REMOVEONCOMPLETION) != 0;
-        
+
         if (ctrl & CTRL_SETTIME)
         {
             unsigned char setTimeRev = buf.ReadUByte();
@@ -912,7 +923,7 @@ void AnimationController::RemoveAnimationState(AnimationState* state)
 
 void AnimationController::FindAnimation(const String& name, unsigned& index, AnimationState*& state) const
 {
-    StringHash nameHash(name);
+    StringHash nameHash(GetInternalPath(name));
 
 // ATOMIC BEGIN
 
@@ -925,6 +936,12 @@ void AnimationController::FindAnimation(const String& name, unsigned& index, Ani
     {
         for (unsigned i = 0; i < animationResources_.Size(); i++)
         {
+            // ATOMIC BEGIN
+            // Check whether the animation resource isn't loaded
+            if (animationResources_[i] == NULL)
+                continue;
+            // ATOMIC END        
+
             if (name == animationResources_[i]->GetAnimationName())
             {
                 nameHash = animationResources_[i]->GetName();

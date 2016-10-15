@@ -73,8 +73,9 @@ namespace ToolCore
     }
 
     NETCSProject::NETCSProject(Context* context, NETProjectGen* projectGen) : NETProjectBase(context, projectGen),
-        androidApplication_(false),
-        playerApplication_(false)
+        genAssemblyDocFile_(false),
+        playerApplication_(false),
+        androidApplication_(false)
     {
 
     }
@@ -418,6 +419,11 @@ namespace ToolCore
         pgroup.CreateChild("ConsolePause").SetValue("false");
         pgroup.CreateChild("AllowUnsafeBlocks").SetValue("true");
 
+        if (genAssemblyDocFile_)
+        {
+            pgroup.CreateChild("DocumentationFile").SetValue(outputPath + assemblyName_ + ".xml");
+        }
+
         if (SupportsDesktop())
         {
             pgroup.CreateChild("DebugType").SetValue(GetIsPCL() ? "pdbonly": "full");
@@ -504,6 +510,11 @@ namespace ToolCore
         pgroup.CreateChild("AllowUnsafeBlocks").SetValue("true");
 
         pgroup.CreateChild("DebugSymbols").SetValue("true");
+
+        if (genAssemblyDocFile_)
+        {
+            pgroup.CreateChild("DocumentationFile").SetValue(outputPath + assemblyName_ + ".xml");
+        }
 
         if (SupportsDesktop())
         {
@@ -836,7 +847,23 @@ namespace ToolCore
 
         // OutputType
         XMLElement outputType = pgroup.CreateChild("OutputType");
-        outputType.SetValue(outputType_);
+
+        String oType = outputType_;
+
+#ifdef ATOMIC_PLATFORM_WINDOWS
+#ifndef ATOMIC_DEBUG
+
+        if (oType.ToLower() == "exe") 
+        {
+            // use windows subsystem for release builds
+            // TODO: make this an option in the json?
+            oType = "WinExe";
+        }
+
+#endif
+#endif
+
+        outputType.SetValue(oType);
 
         pgroup.CreateChild("AppDesignerFolder").SetValue("Properties");
 
@@ -1098,8 +1125,15 @@ namespace ToolCore
                     String startArguments;
 
 #ifndef ATOMIC_DEV_BUILD
+
+#ifdef ATOMIC_PLATFORM_OSX
+                    startArguments += ToString("--resourcePrefix \"%s\" ", (fileSystem->GetProgramDir() + "../Resources/").CString());
+#else
                     startArguments += ToString("--resourcePrefix \"%s\" ", (fileSystem->GetProgramDir() + "Resources/").CString());
 #endif
+
+#endif
+
 
                     propertyGroup.CreateChild("StartAction").SetValue("Project");
 
@@ -1221,6 +1255,7 @@ namespace ToolCore
 
         androidApplication_ = root["androidApplication"].GetBool();
         playerApplication_ = root["playerApplication"].GetBool();
+        genAssemblyDocFile_ = root["assemblyDocFile"].GetBool();
 
         rootNamespace_ = root["rootNamespace"].GetString();
         assemblyName_ = root["assemblyName"].GetString();

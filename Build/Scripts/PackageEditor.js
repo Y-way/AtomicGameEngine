@@ -1,3 +1,4 @@
+var fs = require('fs-extra');
 var host = require("./Host");
 var config = require("./BuildConfig");
 
@@ -87,6 +88,67 @@ namespace('package', function() {
           if (!devIDApp) {
               console.log("\nDeveloper ID Application not specified, code is not be signed!\n\n");
           }
+
+          complete();
+
+        }, {
+          printStdout: true,
+          printStderr: true
+        });
+
+    });
+    
+    task('linux_editor', {
+        async: true
+    }, function() {
+
+        var editorAppFolder = config.editorAppFolder;
+        var srcDir = config.artifactsRoot + "AtomicEditor/";
+        var dstDir = config.artifactsRoot + "Dist/";
+        var dstDeb = config.artifactsRoot + "AtomicEditor_LINUX_" + config.buildSHA + ".deb";
+
+        host.cleanCreateDir(dstDir);  // create new staging directory
+        fs.removeSync(dstDeb);  // remove old one, if there
+        
+        // copy in the two magic dirs
+        fs.copySync(config.atomicRoot + "Build/Linux/DEBIAN", dstDir + "DEBIAN");
+        fs.copySync(config.atomicRoot + "Build/Linux/usr", dstDir + "usr" );
+
+        // copy in the atomic dir
+        fs.copySync(editorAppFolder, dstDir + "usr/share/atomicgameengine" );
+       
+        //copy in menu pixmap
+        fs.copySync(config.atomicRoot + "Build/Linux/atomic_menu.xpm", dstDir + "usr/share/atomicgameengine/atomic_menu.xpm" );
+
+        //copy in copyright
+        fs.copySync(config.atomicRoot + "LICENSE.md", dstDir + "usr/share/doc/atomicgameengine/copyright" );
+
+        cmds = [];
+        
+        // go to staging root directory
+        cmds.push("cd " + config.artifactsRoot + " ;" );
+        
+        // get rid of some lintian errors
+        cmds.push("find " + dstDir + "usr/share/atomicgameengine/ -name .gitignore -type f -delete ;");
+        cmds.push("find " + dstDir + "usr/share/atomicgameengine/ -maxdepth 9 -type f -print0 | xargs -0 chmod oug-x ;");
+        cmds.push("/bin/chmod oug+x " + dstDir + "usr/share/atomicgameengine/AtomicEditor ;");
+        cmds.push("/bin/chmod oug+x " + dstDir + "usr/share/atomicgameengine/Resources/ToolData/Deployment/Linux/AtomicPlayer ;" );
+        cmds.push("/usr/bin/strip --strip-unneeded " + dstDir + "usr/share/atomicgameengine/AtomicEditor ;" );
+        cmds.push("/usr/bin/strip --strip-unneeded " + dstDir + "usr/share/atomicgameengine/Resources/ToolData/Deployment/Linux/AtomicPlayer ;" );
+
+        // create the package
+        // needs fakeroot for package file ownership issues
+        cmds.push("/usr/bin/fakeroot /usr/bin/dpkg-deb --build " + dstDir + ";");
+
+        // change the deb name, following Atomic standards
+        cmds.push("/bin/mv " + config.artifactsRoot + "Dist.deb " + dstDeb + " ;");
+
+        // clean up the staging area
+        cmds.push("/bin/rm -rf "+  dstDir + " ;");
+
+        jake.exec(cmds, function() {
+
+          console.log("Packaged Linux Editor to " + dstDeb );
 
           complete();
 

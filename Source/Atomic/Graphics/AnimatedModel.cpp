@@ -111,14 +111,6 @@ void AnimatedModel::RegisterObject(Context* context)
         Variant::emptyVariantVector, AM_FILE);
     ATOMIC_ACCESSOR_ATTRIBUTE("Morphs", GetMorphsAttr, SetMorphsAttr, PODVector<unsigned char>, Variant::emptyBuffer,
         AM_DEFAULT | AM_NOEDIT);
-
-    // ATOMIC BEGIN
-
-    ATOMIC_ACCESSOR_ATTRIBUTE("Geometry Enabled", GetGeometryEnabledAttr, SetGeometryEnabledAttr, VariantVector,
-        Variant::emptyVariantVector, AM_FILE | AM_NOEDIT);
-
-    // ATOMIC END
-
 }
 
 bool AnimatedModel::Load(Deserializer& source, bool setInstanceDefault)
@@ -395,6 +387,12 @@ void AnimatedModel::SetModel(Model* model, bool createBones)
 {
     if (model == model_)
         return;
+
+    if (!node_)
+    {
+        ATOMIC_LOGERROR("Can not set model while model component is not attached to a scene node");
+        return;
+    }
 
     // Unsubscribe from the reload event of previous model (if any), then subscribe to the new
     if (model_)
@@ -1366,7 +1364,13 @@ void AnimatedModel::UpdateAnimation(const FrameInfo& frame)
     // (first AnimatedModel in a node)
     if (isMaster_)
     {
-        skeleton_.ResetSilent();
+
+        // ATOMIC BEGIN
+        // Do not reset the skeleton as this is causing some visual artifacts with transitions
+        // TODO: a reproduction case?  Perhaps this is an issue with specific exports/bone animations?
+        // skeleton_.ResetSilent();
+        // ATOMIC END
+
         for (Vector<SharedPtr<AnimationState> >::Iterator i = animationStates_.Begin(); i != animationStates_.End(); ++i)
             (*i)->Apply();
 

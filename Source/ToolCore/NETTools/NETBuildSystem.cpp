@@ -283,7 +283,7 @@ namespace ToolCore
 
 #ifdef ATOMIC_PLATFORM_WINDOWS
 
-            String cmdToolsPath = Poco::Environment::get("VS140COMNTOOLS").c_str();
+            String cmdToolsPath = Poco::Environment::get("VS140COMNTOOLS", "").c_str();
 
             if (!cmdToolsPath.Length())
             {
@@ -291,7 +291,12 @@ namespace ToolCore
                 return;
             }
 
-            String vcvars64 = ToString("%s..\\..\\VC\\bin\\amd64\\vcvars64.bat", cmdToolsPath.CString());
+            if (!cmdToolsPath.EndsWith("\\"))
+            {
+                cmdToolsPath += "\\";
+            }
+
+            String msbuildcmd = ToString("%sVsMSBuildCmd.bat", cmdToolsPath.CString());
 
             String cmd = "cmd";
 
@@ -299,7 +304,7 @@ namespace ToolCore
             args.Push("/C");
 
             // vcvars bat
-            String compile = ToString("\"\"%s\" ", vcvars64.CString());
+            String compile = ToString("\"\"%s\" ", msbuildcmd.CString());
 
             if (requiresNuGet)
             {
@@ -355,6 +360,10 @@ namespace ToolCore
                 CurrentBuildError(ToString("NETCompile::Compile - Unable to launch MSBuild subprocess\n%s", curBuild_->allArgs_.CString()));
                 return;
             }
+
+            VariantMap buildBeginEventData;
+            buildBeginEventData[NETBuildBegin::P_BUILD] = curBuild_;
+            SendEvent(E_NETBUILDBEGIN, buildBeginEventData);
 
             SubscribeToEvent(subprocess, E_SUBPROCESSCOMPLETE, ATOMIC_HANDLER(NETBuildSystem, HandleCompileProcessComplete));
             SubscribeToEvent(subprocess, E_SUBPROCESSOUTPUT, ATOMIC_HANDLER(NETBuildSystem, HandleSubprocessOutput));

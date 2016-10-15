@@ -111,7 +111,20 @@ export class TypescriptLanguageService {
      * @return {[type]}
      */
     setTsConfig(tsConfig: any) {
-        let cmdLine = ts.parseJsonConfigFileContent(tsConfig, undefined, undefined);
+        // Need to pass a stub in.  It's not going to be used, but the JSON Config Parser needs an object in order to parse the tsconfig
+        const stubParseConfigHost: ts.ParseConfigHost = {
+            readDirectory(rootDir: string, extension: string, exclude: string[] ): string[] {
+                return null;
+            },
+            fileExists(fileName: string): boolean {
+                return false;
+            },
+            readFile(fileName: string): string {
+                return "";
+            }
+        };
+
+        let cmdLine = ts.parseJsonConfigFileContent(tsConfig, stubParseConfigHost, ".");
         this.compilerOptions = cmdLine.options;
 
         // Set a dummy out directory because we need to be able to handle JS files
@@ -297,7 +310,8 @@ export class TypescriptLanguageService {
         if (results) {
             return {
                 contents: ts.displayPartsToString(results.displayParts),
-                range: results.textSpan
+                range: results.textSpan,
+                documentation: ts.displayPartsToString(results.documentation)
             };
         } else {
             return null;

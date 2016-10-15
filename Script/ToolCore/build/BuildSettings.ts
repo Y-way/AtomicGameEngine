@@ -71,4 +71,11 @@ class IOSBuildSettings {
     appIDPrefix: string;
 }
 
+class LinuxBuildSettings {
+    appName: string;
+    packageName: string;
+    companyName: string;
+    productName: string;
+}
+
 export = BuildSettings;

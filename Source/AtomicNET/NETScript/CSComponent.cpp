@@ -52,13 +52,8 @@ void CSComponent::RegisterObject(Context* context)
 {
     context->RegisterFactory<CSComponent>(LOGIC_CATEGORY);
 
-    ATOMIC_ACCESSOR_ATTRIBUTE("Is Enabled", IsEnabled, SetEnabled, bool, true, AM_DEFAULT);
-
-    ATOMIC_ATTRIBUTE("FieldValues", VariantMap, fieldValues_, Variant::emptyVariantMap, AM_FILE);
-
-    ATOMIC_MIXED_ACCESSOR_ATTRIBUTE("Assembly", GetAssemblyFileAttr, SetAssemblyFileAttr, ResourceRef, ResourceRef(CSComponentAssembly::GetTypeStatic()), AM_DEFAULT);
-
     ATOMIC_ACCESSOR_ATTRIBUTE("Class", GetComponentClassName, SetComponentClassName, String, String::EMPTY, AM_DEFAULT);
+    ATOMIC_COPY_BASE_ATTRIBUTES(ScriptComponent);
 
 }
 
@@ -78,17 +73,18 @@ void CSComponent::ApplyFieldValues()
 
 void CSComponent::SetComponentClassName(const String& name)
 {
+    if (componentClassName_ == name)
+        return;
+
     componentClassName_ = name;
 
-    if (assemblyFile_ && assemblyFile_->GetClassNames().Contains(name))
+    if (context_->GetEditorContext())
     {
-        /*
         using namespace CSComponentClassChanged;
         VariantMap eventData;
         eventData[P_CSCOMPONENT] = this;
         eventData[P_CLASSNAME] = name;
         SendEvent(E_CSCOMPONENTCLASSCHANGED, eventData);
-        */
     }
 }
 
@@ -104,21 +100,21 @@ void CSComponent::OnSceneSet(Scene* scene)
 
 void CSComponent::SendLoadEvent()
 {
-    if (!assemblyFile_ || !componentClassName_.Length())
+    if (!componentClassName_.Length())
         return;
 
     using namespace CSComponentLoad;
 
     VariantMap eventData;
 
-    eventData[P_ASSEMBLYPATH] = GetFileName(assemblyFile_->GetFullPath());
     eventData[P_CLASSNAME] = componentClassName_;
     eventData[P_NATIVEINSTANCE] = (void*) this;
 
     if (!fieldValues_.Empty())
         eventData[P_FIELDVALUES] = (void*) &fieldValues_;
 
-    SendEvent(E_CSCOMPONENTLOAD, eventData);
+    if (node_ && node_->GetScene())
+        node_->GetScene()->SendEvent(E_CSCOMPONENTLOAD, eventData);
 
 }
 
@@ -142,20 +138,13 @@ bool CSComponent::LoadXML(const XMLElement& source, bool setInstanceDefault)
     return success;
 }
 
-void CSComponent::SetAssemblyFile(CSComponentAssembly* assemblyFile)
+ScriptComponentFile* CSComponent::GetComponentFile()
 {
-    assemblyFile_ = assemblyFile;
-}
+    if (!componentClassName_.Length())
+        return 0;
 
-ResourceRef CSComponent::GetAssemblyFileAttr() const
-{
-    return GetResourceRef(assemblyFile_, CSComponentAssembly::GetTypeStatic());
-}
+    return CSComponentAssembly::ResolveClassAssembly(componentClassName_);
 
-void CSComponent::SetAssemblyFileAttr(const ResourceRef& value)
-{
-    ResourceCache* cache = GetSubsystem<ResourceCache>();
-    SetAssemblyFile(cache->GetResource<CSComponentAssembly>(value.name_));
 }
 
 
