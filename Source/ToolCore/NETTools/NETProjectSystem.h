@@ -52,13 +52,16 @@ namespace ToolCore
 
         bool GetIDEAvailable() const { return idePath_.Length() != 0; }
 
+        /// Returns true if there is a solution available for the loaded project (true = managed app)
+        bool GetSolutionAvailable() const { return solutionPath_.Length() != 0; }
+
         const String& GetSolutionPath() const { return solutionPath_; }
 
-        void BuildAtomicProject();        
+        void BuildAtomicProject();
 
         /// Open the solution, if opening a source file, better to call OpenSourceFile as will launch VS instance with source file loaded
         /// otherwise, no guarantee where source file will load when multiple VS instances running
-        void OpenSolution();       
+        void OpenSolution();
 
         void OpenSourceFile(const String& sourceFilePath);
 

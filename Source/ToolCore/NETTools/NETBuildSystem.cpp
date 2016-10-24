@@ -61,7 +61,8 @@ namespace ToolCore
     }
 
     NETBuildSystem::NETBuildSystem(Context* context) :
-        Object(context)
+        Object(context),
+        verbose_(false)
     {
         SubscribeToEvent(E_TOOLUPDATE, ATOMIC_HANDLER(NETBuildSystem, HandleToolUpdate));
         SubscribeToEvent(E_NETBUILDATOMICPROJECT, ATOMIC_HANDLER(NETBuildSystem, HandleBuildAtomicProject));
@@ -82,7 +83,8 @@ namespace ToolCore
 
         const String& text = eventData[SubprocessOutput::P_TEXT].GetString();
 
-        // LOGINFOF(text.CString());
+        if (verbose_)
+            ATOMIC_LOGINFOF(text.CString());
 
         curBuild_->output_ += text;
 
@@ -109,6 +111,11 @@ namespace ToolCore
 
         bool success = true;
         String errorMsg;
+
+        if (verbose_)
+        {
+            ATOMIC_LOGINFOF("AtomicNET Build Command: %s", curBuild_->allArgs_.CString());
+        }
 
         if (!code)
         {
@@ -311,8 +318,25 @@ namespace ToolCore
                 compile += ToString("&& \"%s\" restore \"%s\" ", nugetBinary.CString(), solutionPath.CString());
             }
 
-            compile += ToString("&& msbuild \"%s\" %s %s\"", solutionPath.CString(), platforms.CString(), configs.CString());
+            compile += ToString("&& msbuild \"%s\" %s %s", solutionPath.CString(), platforms.CString(), configs.CString());
 
+            if (curBuild_->targets_.Size()) {
+
+                StringVector targets;
+
+                for (unsigned i = 0; i < curBuild_->targets_.Size(); i++)
+                {
+                    const char* tname = curBuild_->targets_[i].CString();
+                    targets.Push(ToString("/t:\"%s:Rebuild\"", tname));
+                }
+
+                compile += " " + String::Joined(targets, " ");
+
+            }
+
+            // close out quote
+            compile += "\"";
+                
             args.Push(compile);
 
 #else
@@ -334,6 +358,20 @@ namespace ToolCore
             }
 
             compile += ToString("\"%s\" \"%s\" %s %s", xbuildBinary.CString(), solutionPath.CString(), platforms.CString(), configs.CString());
+
+            if (curBuild_->targets_.Size()) {
+
+                StringVector targets;
+
+                for (unsigned i = 0; i < curBuild_->targets_.Size(); i++)
+                {
+                    const char* tname = curBuild_->targets_[i].CString();
+                    targets.Push(ToString("%s:Rebuild", tname));
+                }
+
+                compile += " /target:\"" + String::Joined(targets, ";") + "\"";
+
+            }
 
             args.Push(compile);
 
@@ -412,7 +450,21 @@ namespace ToolCore
 
         if (build)
         {
+            ProjectSettings* settings = project->GetProjectSettings();
+
+            // This path is currently only hit when refreshing for desktop
+            if (settings->GetSupportsAndroid() || settings->GetSupportsIOS()) 
+            {
+                // Build the PCL, which will get copied to Resources
+                build->targets_.Push(project->GetProjectSettings()->GetName());
+
+                // Build the Desktop executable, so we can run it
+                // IMPORTANT NOTE: msbuild requires replacing '.' with '_' when in project name
+                build->targets_.Push(project->GetProjectSettings()->GetName() + "_Desktop");
+            }
+
             build->project_ = project;
+
         }
 
         ATOMIC_LOGINFOF("Received build for project %s", project->GetProjectFilePath().CString());
