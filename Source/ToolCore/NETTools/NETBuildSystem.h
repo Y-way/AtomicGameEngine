@@ -70,6 +70,7 @@ namespace ToolCore
         String solutionPath_;
         StringVector configurations_;
         StringVector platforms_;
+        StringVector targets_;
 
         NETBuildStatus status_;
         String allArgs_;
@@ -94,6 +95,8 @@ namespace ToolCore
 
         NETBuild* BuildAtomicProject(Project* project);
 
+        void SetVerbose(bool verbose) { verbose_ = verbose; }
+
     private:
 
         void CurrentBuildError(String errorText);
@@ -107,6 +110,8 @@ namespace ToolCore
 
         SharedPtr<NETBuild> curBuild_;
         List<SharedPtr<NETBuild>> builds_;
+
+        bool verbose_;
 
     };
 

@@ -381,10 +381,10 @@ bool ResourceCache::ReloadResource(Resource* resource)
 
     resource->SendEvent(E_RELOADSTARTED);
 
-    bool success = false;
-    SharedPtr<File> file = GetFile(resource->GetName());
-
 // ATOMIC BEGIN
+
+    bool success = false;
+    SharedPtr<File> file = GetFile(resource->GetName(), true, resource->GetType());
 
     if (file)
     {
@@ -513,17 +513,18 @@ void ResourceCache::RemoveResourceRouter(ResourceRouter* router)
         }
     }
 }
-
-SharedPtr<File> ResourceCache::GetFile(const String& nameIn, bool sendEventOnFailure)
+// ATOMIC BEGIN
+SharedPtr<File> ResourceCache::GetFile(const String& nameIn, bool sendEventOnFailure, StringHash type)
 {
     MutexLock lock(resourceMutex_);
 
     String name = SanitateResourceName(nameIn);
+
     if (!isRouting_)
     {
         isRouting_ = true;
         for (unsigned i = 0; i < resourceRouters_.Size(); ++i)
-            resourceRouters_[i]->Route(name, RESOURCE_GETFILE);
+            resourceRouters_[i]->Route(name, type, RESOURCE_GETFILE);
         isRouting_ = false;
     }
 
@@ -567,6 +568,7 @@ SharedPtr<File> ResourceCache::GetFile(const String& nameIn, bool sendEventOnFai
 
     return SharedPtr<File>();
 }
+// ATOMIC END
 
 Resource* ResourceCache::GetExistingResource(StringHash type, const String& nameIn)
 {
@@ -632,10 +634,12 @@ Resource* ResourceCache::GetResource(StringHash type, const String& nameIn, bool
         return 0;
     }
 
+    // ATOMIC BEGIN
     // Attempt to load the resource
-    SharedPtr<File> file = GetFile(name, sendEventOnFailure);
+    SharedPtr<File> file = GetFile(name, sendEventOnFailure, type);
     if (!file)
         return 0;   // Error is already logged
+    // ATOMIC END
 
     ATOMIC_LOGDEBUG("Loading resource " + name);
     resource->SetName(name);
@@ -785,14 +789,16 @@ bool ResourceCache::Exists(const String& nameIn) const
 {
     MutexLock lock(resourceMutex_);
 
+    // ATOMIC BEGIN
     String name = SanitateResourceName(nameIn);
     if (!isRouting_)
     {
         isRouting_ = true;
         for (unsigned i = 0; i < resourceRouters_.Size(); ++i)
-            resourceRouters_[i]->Route(name, RESOURCE_CHECKEXISTS);
+            resourceRouters_[i]->Route(name, StringHash::ZERO, RESOURCE_CHECKEXISTS);
         isRouting_ = false;
     }
+    // ATOMIC END
 
     if (name.Empty())
         return false;
@@ -1189,5 +1195,55 @@ void RegisterResourceLibrary(Context* context)
     PListFile::RegisterObject(context);
     XMLFile::RegisterObject(context);
 }
+
+// ATOMIC BEGIN
+ResourceNameIterator::ResourceNameIterator()
+{
+    Reset();
+}
+
+const String& ResourceNameIterator::GetCurrent()
+{
+    return (index_ < filenames_.Size()) ?
+        filenames_[index_] :
+        String::EMPTY;
+}
+
+bool ResourceNameIterator::MoveNext()
+{
+    return ++index_ < filenames_.Size();
+}
+
+void ResourceNameIterator::Reset()
+{
+    index_ = -1;
+}
+
+void ResourceCache::Scan(Vector<String>& result, const String& pathName, const String& filter, unsigned flags, bool recursive) const
+{
+    Vector<String> interimResult;
+
+    for (unsigned i = 0; i < packages_.Size(); ++i)
+    {
+        packages_[i]->Scan(interimResult, pathName, filter, recursive);
+        result.Insert(result.End(), interimResult);
+    }
+
+    FileSystem* fileSystem = GetSubsystem<FileSystem>();
+    for (unsigned i = 0; i < resourceDirs_.Size(); ++i)
+    {
+        fileSystem->ScanDir(interimResult, resourceDirs_[i] + pathName, filter, flags, recursive);
+        result.Insert(result.End(), interimResult);
+    }
+}
+
+SharedPtr<ResourceNameIterator> ResourceCache::Scan(const String& pathName, const String& filter, unsigned flags, bool recursive) const
+{
+    SharedPtr<ResourceNameIterator> enumerator(new ResourceNameIterator());
+    Scan(enumerator->filenames_, pathName, filter, flags, recursive);
+
+    return enumerator;
+}
+// ATOMIC END
 
 }

@@ -87,9 +87,13 @@ void CSFunctionWriter::GenNativeCallParameters(String& sig)
             }
             else
             {
-                if (ptype->type_->asStringType() || ptype->type_->asStringHashType())
+                if (ptype->type_->asStringType())
                 {
                     args.Push(ToString("%s ? String(%s) : String::EMPTY", ptype->name_.CString(), ptype->name_.CString()));
+                }
+                else if (ptype->type_->asStringHashType())
+                {
+                    args.Push(ToString("StringHash(%s)", ptype->name_.CString()));
                 }
                 else
                 {
@@ -360,6 +364,12 @@ void CSFunctionWriter::WriteDefaultStructParameters(String& source)
 
 void CSFunctionWriter::WriteManagedPInvokeFunctionSignature(String& source)
 {
+    JSBClass* klass = function_->GetClass();
+    JSBPackage* package = klass->GetPackage();
+
+    if (klass->IsInterface())
+        return;
+
     source += "\n";
 
     // CoreCLR has pinvoke security demand code commented out, so we do not (currently) need this optimization:
@@ -369,9 +379,6 @@ void CSFunctionWriter::WriteManagedPInvokeFunctionSignature(String& source)
 
     String line = "[DllImport (Constants.LIBNAME, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]\n";
     source += IndentLine(line);
-
-    JSBClass* klass = function_->GetClass();
-    JSBPackage* package = klass->GetPackage();
 
     String returnType = CSTypeHelper::GetPInvokeTypeString(function_->GetReturnType());
 
@@ -692,7 +699,7 @@ void CSFunctionWriter::WriteManagedFunction(String& source)
 
     GenManagedFunctionParameters(sig);
 
-    String line = "public ";
+    String line = klass->IsInterface() ? "" : "public ";
 
     if (function_->IsStatic())
     {
@@ -714,10 +721,20 @@ void CSFunctionWriter::WriteManagedFunction(String& source)
         }
     }
 
-    if (!marked && function_->IsVirtual())
+    if (!marked && function_->IsVirtual() && !klass->IsInterface())
         line += "virtual ";
 
-    line += ToString("%s %s (%s)\n", returnType.CString(), function_->GetName().CString(), sig.CString());
+    line += ToString("%s %s (%s)", returnType.CString(), function_->GetName().CString(), sig.CString());
+
+    if (klass->IsInterface())
+    {
+        // If we're an interface we have no implementation
+        line += ";\n\n";
+        source += IndentLine(line);
+        return;
+    }
+    else
+        line += "\n";
 
     source += IndentLine(line);
 
@@ -732,9 +749,13 @@ void CSFunctionWriter::WriteManagedFunction(String& source)
     if (function_->GetReturnType())
     {
 
-        if (function_->GetReturnType()->type_->asStringType() || function_->GetReturnType()->type_->asStringHashType())
+        if (function_->GetReturnType()->type_->asStringType())
         {
             line += "return System.Runtime.InteropServices.Marshal.PtrToStringAnsi(";
+        }
+        else if (function_->GetReturnType()->type_->asStringHashType())
+        {
+            line += "return ";
         }
         else if (function_->GetReturnType()->type_->asVectorType())
         {
@@ -774,7 +795,7 @@ void CSFunctionWriter::WriteManagedFunction(String& source)
 
     if (function_->GetReturnType())
     {
-        if (function_->GetReturnType()->type_->asStringType() || function_->GetReturnType()->type_->asStringHashType())
+        if (function_->GetReturnType()->type_->asStringType())
             line += ")";
     }
 
@@ -820,6 +841,7 @@ void CSFunctionWriter::WriteManagedFunction(String& source)
 
 void CSFunctionWriter::GenerateManagedSource(String& sourceOut)
 {
+    JSBClass* klass = function_->GetClass();
 
     String source = "";
 
@@ -846,47 +868,49 @@ void CSFunctionWriter::GenerateManagedSource(String& sourceOut)
 
     WriteManagedPInvokeFunctionSignature(source);
 
-    // data marshaller
-    if (function_->GetReturnType() && !CSTypeHelper::IsSimpleReturn(function_->GetReturnType()))
+    if (!klass->IsInterface())
     {
-        if (function_->GetReturnClass())
+        // data marshaller
+        if (function_->GetReturnType() && !CSTypeHelper::IsSimpleReturn(function_->GetReturnType()))
         {
-            JSBClass* retClass = function_->GetReturnClass();
-
-            if (retClass->IsNumberArray())
+            if (function_->GetReturnClass())
             {
-                JSBClass* klass = function_->GetClass();
-                String managedType = CSTypeHelper::GetManagedTypeString(function_->GetReturnType());
-                String marshal = "private ";
+                JSBClass* retClass = function_->GetReturnClass();
 
-                if (function_->IsStatic())
-                    marshal += "static ";
+                if (retClass->IsNumberArray())
+                {
+                    String managedType = CSTypeHelper::GetManagedTypeString(function_->GetReturnType());
+                    String marshal = "private ";
 
-                marshal += managedType + " ";
+                    if (function_->IsStatic())
+                        marshal += "static ";
 
-                marshal += ToString("%s%s%uReturnValue = new %s();\n", klass->GetName().CString(), function_->GetName().CString(), function_->GetID(), managedType.CString());
+                    marshal += managedType + " ";
 
-                sourceOut += IndentLine(marshal);
+                    marshal += ToString("%s%s%uReturnValue = new %s();\n", klass->GetName().CString(), function_->GetName().CString(), function_->GetID(), managedType.CString());
+
+                    sourceOut += IndentLine(marshal);
+                }
             }
         }
-    }
-    else if (!function_->IsStatic() && function_->GetReturnType() && function_->GetReturnType()->type_->asVectorType())
-    {
-        JSBVectorType* vtype = function_->GetReturnType()->type_->asVectorType();
-
-        if (vtype->vectorType_->asClassType())
+        else if (!function_->IsStatic() && function_->GetReturnType() && function_->GetReturnType()->type_->asVectorType())
         {
-            String classname = vtype->vectorType_->asClassType()->class_->GetName();
-            String typestring = "Vector<" + classname + ">";
+            JSBVectorType* vtype = function_->GetReturnType()->type_->asVectorType();
 
-            String marshal = "private " + typestring + " ";
+            if (vtype->vectorType_->asClassType())
+            {
+                String classname = vtype->vectorType_->asClassType()->class_->GetName();
+                String typestring = "Vector<" + classname + ">";
 
-            marshal += ToString("%s%s%uReturnValue = new %s();\n", function_->GetClass()->GetName().CString(), function_->GetName().CString(), function_->GetID(), typestring.CString());
+                String marshal = "private " + typestring + " ";
 
-            sourceOut += IndentLine(marshal);
+                marshal += ToString("%s%s%uReturnValue = new %s();\n", function_->GetClass()->GetName().CString(), function_->GetName().CString(), function_->GetID(), typestring.CString());
+
+                sourceOut += IndentLine(marshal);
+
+            }
 
         }
-
     }
 
     Dedent();
@@ -1004,6 +1028,14 @@ String CSFunctionWriter::MapDefaultParameter(JSBFunctionType* parameter)
         dparm.assignment = "Quaternion.Identity";
         defaultStructParameters_.Push(dparm);
         return "default(Quaternion)";
+    }
+
+    if (init == "StringHash::ZERO")
+    {
+        dparm.type = "StringHash";
+        dparm.assignment = "StringHash.Zero";
+        defaultStructParameters_.Push(dparm);
+        return "default(StringHash)";
     }
 
     return String::EMPTY;

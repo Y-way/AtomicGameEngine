@@ -131,12 +131,15 @@ bool ModelImporter::ImportAnimation(const String& filename, const String& name, 
 
             AnimatedModel* animatedModel = importNode_->GetComponent<AnimatedModel>();
             AnimationController* controller = importNode_->GetComponent<AnimationController>();
-            if (animatedModel && controller)
+            if (!controller)
             {
-                SharedPtr<Animation> animation = cache->GetTempResource<Animation>(fileName + extension);
-                if (animation)
-                    controller->AddAnimationResource(animation);
+                importNode_->CreateComponent<AnimationController>();
+                controller = importNode_->GetComponent<AnimationController>();
             }
+            SharedPtr<Animation> animation = cache->GetTempResource<Animation>(fileName + extension);
+
+            if (animation)
+                controller->AddAnimationResource(animation);
 
             ATOMIC_LOGINFOF("Import Info: %s : %s", info.name_.CString(), fileName.CString());
         }
@@ -334,6 +337,30 @@ void ModelImporter::GetAnimations(PODVector<Animation*>& animations)
         }
     }
 
+}
+
+void ModelImporter::GetAssetCacheMap(HashMap<String, String>& assetMap)
+{
+    if (asset_.Null())
+        return;
+
+    String assetPath = asset_->GetRelativePath().ToLower();
+
+    String cachePath = asset_->GetGUID().ToLower();
+
+    // Default is load node xml
+    assetMap["Node;" + assetPath] = cachePath;
+    assetMap["Model;" + assetPath] = cachePath + ".mdl";
+
+    PODVector<Animation*> animations;
+
+    GetAnimations(animations);
+
+    for (unsigned i = 0; i < animations.Size(); i++)
+    {
+        Animation* anim = animations[i];
+        assetMap["Animation;" + anim->GetAnimationName().ToLower() + "@" + assetPath] = cachePath + "_" + anim->GetAnimationName() + ".ani";
+    }
 }
 
 bool ModelImporter::LoadSettingsInternal(JSONValue& jsonRoot)

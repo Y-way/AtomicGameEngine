@@ -159,6 +159,8 @@ String CSTypeHelper::GetManagedPrimitiveType(JSBPrimitiveType* ptype)
         return "byte";
     if (ptype->kind_ == JSBPrimitiveType::Char)
         return "char";
+    if (ptype->kind_ == JSBPrimitiveType::Short && ptype->isUnsigned_)
+        return "ushort";
     if (ptype->kind_ == JSBPrimitiveType::Short)
         return "short";
     if (ptype->kind_ == JSBPrimitiveType::LongLong)
@@ -179,9 +181,13 @@ String CSTypeHelper::GetManagedTypeString(JSBType* type)
         JSBClassType* classType = type->asClassType();
         value = classType->class_->GetName();
     }
-    else if (type->asStringType() || type->asStringHashType())
+    else if (type->asStringType())
     {
         value = "string";
+    }
+    else if (type->asStringHashType())
+    {
+        value = "StringHash";
     }
     else if (type->asEnumType())
     {
@@ -256,7 +262,7 @@ String CSTypeHelper::GetNativeTypeString(JSBType* type)
     }
     else if (type->asStringHashType())
     {
-        value = "const char*";
+        value = "unsigned";
     }
     else if (type->asEnumType())
     {
@@ -297,9 +303,13 @@ String CSTypeHelper::GetPInvokeTypeString(JSBType* type)
         else
             value = "IntPtr";
     }
-    else if (type->asStringType() || type->asStringHashType())
+    else if (type->asStringType())
     {
         value = "string";
+    }
+    else if (type->asStringHashType())
+    {
+        value = "uint";
     }
     else if (type->asEnumType())
     {

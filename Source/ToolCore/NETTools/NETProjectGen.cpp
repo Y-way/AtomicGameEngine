@@ -419,6 +419,9 @@ namespace ToolCore
         pgroup.CreateChild("ConsolePause").SetValue("false");
         pgroup.CreateChild("AllowUnsafeBlocks").SetValue("true");
 
+        // Don't warn on missing XML documentation
+        pgroup.CreateChild("NoWarn").SetValue("1591");
+
         if (genAssemblyDocFile_)
         {
             pgroup.CreateChild("DocumentationFile").SetValue(outputPath + assemblyName_ + ".xml");
@@ -508,6 +511,9 @@ namespace ToolCore
         pgroup.CreateChild("WarningLevel").SetValue("4");
         pgroup.CreateChild("ConsolePause").SetValue("false");
         pgroup.CreateChild("AllowUnsafeBlocks").SetValue("true");
+
+        // Don't warn on missing XML documentation
+        pgroup.CreateChild("NoWarn").SetValue("1591");
 
         pgroup.CreateChild("DebugSymbols").SetValue("true");
 
@@ -1134,14 +1140,21 @@ namespace ToolCore
 
 #endif
 
-
                     propertyGroup.CreateChild("StartAction").SetValue("Project");
 
                     startArguments += ToString("--project \"%s\"", atomicProjectPath.CString());
 
                     propertyGroup.CreateChild("StartArguments").SetValue(startArguments);
 
+#ifdef ATOMIC_DEBUG
+                    // When building a debug build, default native code debugging to true
+                    if (cfg == "Debug")
+                    {
+                        propertyGroup.CreateChild("EnableUnmanagedDebugging").SetValue("true");
+                    }
+#endif                    
                 }
+
 
                 String userSettingsSource = userSettings->ToString();
                 SharedPtr<File> output(new File(context_, GetSanitizedPath(userSettingsFilename), FILE_WRITE));

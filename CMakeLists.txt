@@ -5,6 +5,7 @@ cmake_minimum_required(VERSION 2.8.12.1)
 
 set (CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/Build/CMake/Modules)
 
+include(AtomicGit)
 include(AtomicUtils)
 
 add_definitions(-DATOMIC_ROOT_SOURCE_DIR="${CMAKE_SOURCE_DIR}" -DATOMIC_ROOT_BUILD_DIR="${CMAKE_BINARY_DIR}")
@@ -48,10 +49,6 @@ endif()
 
 if (ATOMIC_WEBVIEW)
 
-  if (NOT EXISTS ${CMAKE_SOURCE_DIR}/Submodules/CEF/Windows)
-    message( FATAL_ERROR "\nBUILD ERROR:\nSubmodules not initialized.  When cloning repository, please use:\ngit clone --recursive https://github.com/AtomicGameEngine/AtomicGameEngine\n" )
-  endif()
-
   if(APPLE)
     if(POLICY CMP0037)
       # new cmake doesn't like creating framework whose name has spaces
@@ -77,3 +74,15 @@ if (ATOMIC_WEBVIEW)
 endif()
 
 add_subdirectory(Source)
+
+
+
+if (ATOMIC_DESKTOP AND ATOMIC_DEV_BUILD)
+
+    set (ATOMIC_CPLUSPLUS_EXAMPLES 1)
+
+    if (ATOMIC_CPLUSPLUS_EXAMPLES)
+        add_subdirectory(Submodules/AtomicExamples/FeatureExamples/CPlusPlus)
+    endif()
+
+endif()

@@ -17,7 +17,7 @@ function installBuildTasks(rootTask) {
         task = docTask;
     }
 
-    if (config["with-examples"]) {
+    if (!config["noexamples"]) {
         var examplesTask = jake.Task['build:genexamples'];
         task.prereqs.push("build:genexamples")
         task = examplesTask;
@@ -27,6 +27,12 @@ function installBuildTasks(rootTask) {
         var netTask = jake.Task['build:atomicnet'];
         task.prereqs.push("build:atomicnet")
         task = netTask;
+    }
+
+    if (config["with-web"]) {
+        var webTask = jake.Task['build:web_player'];
+        task.prereqs.push("build:web_player")
+        task = webTask;
     }
 
     if (config["with-ios"]) {
