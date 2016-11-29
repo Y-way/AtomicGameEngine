@@ -185,6 +185,10 @@ class Preferences {
         return this._prefs.editorBuildData;
     }
 
+    get editorFeatures(): EditorFeatures {
+        return this._prefs.editorFeatures;
+    }
+
     static getInstance(): Preferences {
         return Preferences.instance;
     }
@@ -335,6 +339,10 @@ interface EditorBuildData {
     lastEditorBuildSHA: string;
 }
 
+interface EditorFeatures {
+    closePlayerLog: boolean;
+    defaultLanguage: string;
+}
 
 class PreferencesFormat {
 
@@ -388,6 +396,11 @@ class PreferencesFormat {
             lastEditorBuildSHA: "Unversioned Build"
         };
 
+        this.editorFeatures = {
+            closePlayerLog: true,
+            defaultLanguage: "JavaScript"
+        };
+
     }
 
     /**
@@ -433,6 +446,11 @@ class PreferencesFormat {
             updatedMissingDefaults = true;
         }
 
+        if (!prefs.editorFeatures) {
+            prefs.editorFeatures = this.editorFeatures;
+            updatedMissingDefaults = true;
+        }
+
         return updatedMissingDefaults;
     }
 
@@ -443,6 +461,7 @@ class PreferencesFormat {
     uiData: UserInterfaceData;
     editorBuildData: EditorBuildData;
     colorHistory: string[];
+    editorFeatures: EditorFeatures;
 }
 
 export = Preferences;
