@@ -4,6 +4,9 @@ var config = require("./BuildConfig");
 
 namespace('package', function() {
 
+    // TODO: Look into if possible to archive on jenkins with different base dir than workspace
+    var webplayerSrcDir = config.artifactsRoot + "DistGen/Artifacts/AtomicEditor/AtomicEditor.app/Contents/Resources/ToolData/Deployment/Web";
+
     task('windows_editor', {
         async: true
     }, function() {
@@ -12,6 +15,14 @@ namespace('package', function() {
         var dstDir = config.artifactsRoot + "Dist/";
 
         host.cleanCreateDir(dstDir);
+
+        // Copy WebGL CI artifacts into editor package
+        if (fs.existsSync(webplayerSrcDir)) {
+
+            fs.copySync(webplayerSrcDir,
+            config.artifactsRoot + "/AtomicEditor/Resources/ToolData/Deployment/Web", {clobber : true });
+
+        }
 
         var installerName = "AtomicEditor_Windows64_Setup_" + config.buildSHA + ".exe";
         var installerPath = config.artifactsRoot + "Dist/" + installerName;
@@ -69,6 +80,12 @@ namespace('package', function() {
 
         host.cleanCreateDir(dstDir);
 
+        // Copy WebGL CI artifacts into editor package
+        if (fs.existsSync(webplayerSrcDir)) {
+            fs.copySync(webplayerSrcDir,
+            config.artifactsRoot + "/AtomicEditor/AtomicEditor.app/Contents/Resources/ToolData/Deployment/Web", {clobber : true });
+        }
+
         cmds = [];
 
         if (config.jenkins) {
@@ -97,7 +114,7 @@ namespace('package', function() {
         });
 
     });
-    
+
     task('linux_editor', {
         async: true
     }, function() {
@@ -109,14 +126,14 @@ namespace('package', function() {
 
         host.cleanCreateDir(dstDir);  // create new staging directory
         fs.removeSync(dstDeb);  // remove old one, if there
-        
+
         // copy in the two magic dirs
         fs.copySync(config.atomicRoot + "Build/Linux/DEBIAN", dstDir + "DEBIAN");
         fs.copySync(config.atomicRoot + "Build/Linux/usr", dstDir + "usr" );
 
         // copy in the atomic dir
         fs.copySync(editorAppFolder, dstDir + "usr/share/atomicgameengine" );
-       
+
         //copy in menu pixmap
         fs.copySync(config.atomicRoot + "Build/Linux/atomic_menu.xpm", dstDir + "usr/share/atomicgameengine/atomic_menu.xpm" );
 
@@ -124,10 +141,10 @@ namespace('package', function() {
         fs.copySync(config.atomicRoot + "LICENSE.md", dstDir + "usr/share/doc/atomicgameengine/copyright" );
 
         cmds = [];
-        
+
         // go to staging root directory
         cmds.push("cd " + config.artifactsRoot + " ;" );
-        
+
         // get rid of some lintian errors
         cmds.push("find " + dstDir + "usr/share/atomicgameengine/ -name .gitignore -type f -delete ;");
         cmds.push("find " + dstDir + "usr/share/atomicgameengine/ -maxdepth 9 -type f -print0 | xargs -0 chmod oug-x ;");
