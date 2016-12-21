@@ -35,14 +35,14 @@ namespace ToolCore
 
     ATOMIC_EVENT(E_NETBUILDRESULT, NETBuildResult)
     {
-        ATOMIC_PARAM(P_BUILD, Build); // NETBuild*
-        ATOMIC_PARAM(P_SUCCESS, Success); // bool = success = true;
-        ATOMIC_PARAM(P_ERRORTEXT, ErrorText); // for failure, the compilation output
+        ATOMIC_PARAM(P_BUILD, Build); // NETBuild
+        ATOMIC_PARAM(P_SUCCESS, Success); // bool success = true;
+        ATOMIC_PARAM(P_ERRORTEXT, ErrorText); // String for failure, the compilation output
     }
 
     ATOMIC_EVENT(E_NETBUILDATOMICPROJECT, NETBuildAtomicProject)
     {
-        ATOMIC_PARAM(P_PROJECT, Project); // Project*
+        ATOMIC_PARAM(P_PROJECT, Project); // Project
     }
 
     enum NETBuildStatus
@@ -62,6 +62,7 @@ namespace ToolCore
     
     public:
 
+        NETBuild(Context* context, const String& solutionPath = String::EMPTY);
         NETBuild(Context* context, const String& solutionPath, const StringVector& platforms, const StringVector& configurations);
         virtual ~NETBuild() {}
 
