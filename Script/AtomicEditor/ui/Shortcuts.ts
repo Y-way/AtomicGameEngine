@@ -30,16 +30,18 @@ class Shortcuts extends Atomic.ScriptObject {
 
         super();
 
-        this.subscribeToEvent("UIShortcut", (ev: Atomic.UIShortcutEvent) => this.handleUIShortcut(ev));
+        this.subscribeToEvent(Atomic.UIShortcutEvent ( (ev) => this.handleUIShortcut(ev)));
 
-        this.subscribeToEvent("KeyDown", (ev: Atomic.KeyDownEvent) => this.handleKeyDown(ev));
+        this.subscribeToEvent(Atomic.KeyDownEvent( (ev) => this.handleKeyDown(ev)));
 
 
     }
 
     //this should be moved somewhere else...
     invokePlayOrStopPlayer(debug: boolean = false) {
+
         this.sendEvent(EditorEvents.SaveAllResources);
+
         if (Atomic.editorMode.isPlayerEnabled()) {
             this.sendEvent("IPCPlayerExitRequest");
         } else {
@@ -216,6 +218,11 @@ class Shortcuts extends Atomic.ScriptObject {
     handleUIShortcut(ev: Atomic.UIShortcutEvent) {
 
         var cmdKey = this.cmdKeyDown();
+
+        if ( !cmdKey && ev.qualifiers > 0 ) // check the event, the qualifier may have been programmitically set
+        {
+            cmdKey = ( ev.qualifiers == Atomic.QUAL_CTRL );
+        }
 
         if (cmdKey) {
 
