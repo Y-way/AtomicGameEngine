@@ -271,6 +271,14 @@ class MainFrameMenu extends Atomic.ScriptObject {
             if (refid == "tools toggle profiler") {
                 Atomic.ui.toggleDebugHud();
                 return true;
+            } if (refid == "tools perf profiler") {                
+                Atomic.ui.debugHudProfileMode = Atomic.DebugHudProfileMode.DEBUG_HUD_PROFILE_PERFORMANCE;
+                Atomic.ui.showDebugHud(true);
+                return true;
+            } else if (refid == "tools metrics profiler") {                
+                Atomic.ui.debugHudProfileMode = Atomic.DebugHudProfileMode.DEBUG_HUD_PROFILE_METRICS;
+                Atomic.ui.showDebugHud(true);
+                return true;
             } else if (refid.indexOf("tools log") != -1) {
 
                 let logName = refid.indexOf("editor") != -1 ? "AtomicEditor" : "AtomicPlayer";
@@ -294,28 +302,34 @@ class MainFrameMenu extends Atomic.ScriptObject {
             }
 
         } else if (target.id == "menu help popup") {
+
             if (refid == "about atomic editor") {
                 EditorUI.getModelOps().showAbout();
                 return true;
             }
-            if (refid == "help community") {
-                Atomic.fileSystem.systemOpen("http://atomicgameengine.com/community/");
-                return true;
-            } else if (refid == "help chat") {
-                Atomic.fileSystem.systemOpen("https://gitter.im/AtomicGameEngine/AtomicGameEngine/");
+
+            if (refid == "help what new") {
+                EditorUI.getModelOps().showNewBuildWindow(false);
                 return true;
             }
-            else if (refid == "help getting started") {
-                Atomic.fileSystem.systemOpen("http://atomicgameengine.com/learn/");
-                return true;
-            } else if (refid == "help github") {
-                Atomic.fileSystem.systemOpen("https://github.com/AtomicGameEngine/AtomicGameEngine/");
-                return true;
-            } else if (refid == "help api") {
-                var url = "file://" + ToolCore.toolEnvironment.toolDataDir + "Docs/JSDocs/index.html";
-                Atomic.fileSystem.systemOpen(url);
+
+            let urlLookup = {
+
+                "help doc wiki" : "https://github.com/AtomicGameEngine/AtomicGameEngine/wiki/",
+                "help chat" : "https://gitter.im/AtomicGameEngine/AtomicGameEngine/",
+                "help api js" : "http://docs.atomicgameengine.com/api/modules/atomic.html",
+                "help api csharp" : "http://docs.atomicgameengine.com/csharp/AtomicEngine/",
+                "help api cplusplus" : "http://docs.atomicgameengine.com/cpp",
+                "help q_and_a" : "https://qa.atomicgameengine.com/",
+                "help github" : "https://github.com/AtomicGameEngine/AtomicGameEngine/"
+            };
+
+            if (urlLookup[refid]) {
+                Atomic.fileSystem.systemOpen(urlLookup[refid]);
                 return true;
             }
+
+            return false;
 
         } else {
             // console.log("Menu: " + target.id + " clicked");
@@ -358,8 +372,11 @@ var editItems = {
 };
 
 var toolsItems = {
-
-    "Toggle Profiler": ["tools toggle profiler"],
+    "Profiler": {
+        "Toggle HUD": ["tools toggle profiler"],
+        "Profile Performance": ["tools perf profiler"],
+        "Profile Metrics": ["tools metrics profiler"]
+    },
     "Logs": {
         "Player Log": ["tools log player"],
         "Editor Log": ["tools log editor"]
@@ -406,12 +423,18 @@ var fileItems = {
 
 var helpItems = {
 
-    "Getting Started": "help getting started",
-    "API Documentation": ["help api"],
+    "What's New": "help what new",
+    "Documentation Wiki": "help doc wiki",
     "-1": null,
-    "Atomic Chat": ["help chat"],
-    "Atomic Community": ["help community"],
+    "API References": {
+        "JavaScript & TypeScript": ["help api js"],
+        "C#": ["help api csharp"],
+        "C++": ["help api cplusplus"]
+    },
     "-2": null,
+    "Atomic Q & A": ["help q_and_a"],
+    "Atomic Chat": ["help chat"],
+    "-3": null,
     "Atomic Game Engine on GitHub": ["help github"],
     "About Atomic Editor": "about atomic editor"
 };

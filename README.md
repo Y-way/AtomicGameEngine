@@ -7,9 +7,9 @@ Email: info@atomicgameengine.com
 
 #### Why Atomic?
 
-The Atomic Game Engine is powerful 2D/3D technology developed by industry veterans.  It is available under the MIT license as an alternative to proprietary binaries, excessive fees, and royalties.
+The Atomic Game Engine is powerful 2D/3D technology developed by industry veterans and contributors from around the world.
 
-Atomic is available to professionals and is being used in production environments.  It is also a great resource for learning JavaScript, TypeScript, C#, and the art of native C++ engine design.
+Atomic is available to professionals and is being used in production environments. It is also a great resource for learning JavaScript, TypeScript, C#, and the art of native C++ engine design.
 
 If you need excellent, high performance technology which leverages the full might of GitHub, the Atomic Community invites you to <a href="http://atomicgameengine.com/#download-the-atomic-editor">download the Atomic Editor</a> or fork us on GitHub!
 
@@ -30,32 +30,48 @@ If you need excellent, high performance technology which leverages the full migh
 - Available as precompiled binaries or fork on GitHub under the permissive MIT license
 - Backed by software professionals with decades of experience in the technology and game industries
 
-#### Downloads
+---
+
+### Downloads
+
+Atomic Editor binary releases are managed by THUNDERBEAST GAMES LLC and scheduled as rolling build <a href="https://github.com/AtomicGameEngine/AtomicGameEngine/milestones" target="_blank">milestones.</a>
 
 **[Download the Atomic Editor](http://atomicgameengine.com/#download-the-atomic-editor)**
 
-#### Documentation
+#### Atomic Resources
 
-<a href="https://github.com/AtomicGameEngine/AtomicGameEngine/wiki/">![](http://atomicgameengine.com/images/community/Community_GitHub.png)
-</a>
+##### Community
 
-#### Atomic API References
+<a href="https://discourse.atomicgameengine.com/">![](http://atomicgameengine.com/images/community/CommunitySupportPortal.png)</a>
+<a href="https://gitter.im/AtomicGameEngine/AtomicGameEngine/">![](http://atomicgameengine.com/images/community/Community_Chat.png)</a>
+<a href="http://atomicgameengine.com/blog/">![](http://atomicgameengine.com/images/community/Community_Blog.png)</a>
 
-<a href="http://docs.atomicgameengine.com/api/modules/atomic.html" target="_blank">
-![](http://atomicgameengine.com/images/community/Documentation_JSTS.png)</a>
-<a href="http://docs.atomicgameengine.com/csharp/AtomicEngine/" target="_blank">
-![](http://atomicgameengine.com/images/community/Documentation_CSharp.png)</a>
-<a href="http://docs.atomicgameengine.com/cpp" target="_blank">
-![](http://atomicgameengine.com/images/community/Documentation_CPlusPlus.png)</a>
+##### Documentation
 
-#### Atomic Community
+<a href="https://github.com/AtomicGameEngine/AtomicGameEngine/wiki/">![](http://atomicgameengine.com/images/community/Community_GitHub.png)</a>  
 
-<a href="https://qa.atomicgameengine.com/" target="_blank">![](http://atomicgameengine.com/images/community/Community_QA.png)
-</a> <a href="https://www.facebook.com/groups/AtomicGameEngine/" target="_blank">
-![](http://atomicgameengine.com/images/community/Community_FB.png)
-</a> <a href="https://gitter.im/AtomicGameEngine/AtomicGameEngine" target="_blank">
-![](http://atomicgameengine.com/images/community/Community_Chat.png)
-</a>
+##### API References
+
+<a href="http://docs.atomicgameengine.com/api/modules/atomic.html">![](http://atomicgameengine.com/images/community/Documentation_JSTS.png)</a>
+<a href="http://docs.atomicgameengine.com/csharp/AtomicEngine/">![](http://atomicgameengine.com/images/community/Documentation_CSharp.png)</a>
+<a href="http://docs.atomicgameengine.com/cpp">![](http://atomicgameengine.com/images/community/Documentation_CPlusPlus.png)</a>
+
+---
+
+### How to Help
+<img align="right" src="https://github.com/AtomicGameEngine/AtomicGameEngine/wiki/images/repo/atomic/wecandoit.jpg" style="margin-left:20px;"/>
+- Let others know about the Atomic Game Engine!
+- Answer questions and provide feedback in the [Atomic Community Support Forum](https://discourse.atomicgameengine.com/c/atomic-community-support) and [Atomic Chat](https://gitter.im/AtomicGameEngine/AtomicGameEngine)
+
+- Help maintain current and write new [Atomic Wiki](https://github.com/AtomicGameEngine/AtomicGameEngine/wiki) documentation articles
+
+- Fork [AtomicGameEngine/AtomicExamples](https://github.com/AtomicGameEngine/AtomicExamples) and submit a pull request with current example improvements or a new example
+
+- Help with issues marked **```unassigned: help wanted```** in the [current build milestone](https://github.com/AtomicGameEngine/AtomicGameEngine/milestones)
+
+- Inform us of other ways to help that should be added here :)  
+
+---
 
 #### Videos
 
@@ -79,18 +95,6 @@ If you need excellent, high performance technology which leverages the full migh
 [AndroidBuildSettings]: https://github.com/AtomicGameEngine/AtomicGameEngine/wiki/images/repo/AndroidBuildSettings.png
 ![alt text][AndroidBuildSettings]
 
-#### Looking for Examples?
-
-They are over here: <a href="https://github.com/AtomicGameEngine/AtomicExamples">Javascript, TypeScript, C#, C++ Examples</a>
-
-#### Building the Atomic Editor from Source
-
-Please see [Building the Atomic Editor from Source](https://github.com/AtomicGameEngine/AtomicGameEngine/wiki/Building-Atomic---The-Quick-and-Easy-Way) for Visual Studio 2015, XCode, and QtCreator build instructions.
-
 #### Atomic History
 
-THUNDERBEAST GAMES began developing the Atomic Game Engine on November 12th, 2014 by forking Urho3D.  It was released under the permissive MIT license during GDC 2016.  Atomic is now being used in production environments, <a href="https://github.com/AtomicGameEngine/AtomicGameEngine/graphs/contributors" target="_blank">has 26 contributors</a>, and we’re just getting started!
-
-#### Atomic Development Fund
-
-Atomic Backers:  Please see [BACKERS.md](https://github.com/AtomicGameEngine/AtomicGameEngine/blob/master/BACKERS.md) for a list of contributors to the [Atomic Development Fund](http://atomicgameengine.com/funding/)
+THUNDERBEAST GAMES began developing the Atomic Game Engine on November 12th, 2014 by forking Urho3D.  It was released under the permissive MIT license during GDC 2016.  Atomic is now being used in production environments, <a href="https://github.com/AtomicGameEngine/AtomicGameEngine/graphs/contributors" target="_blank">has 27 contributors</a>, and runs on Windows, macOS, Android, iOS, Linux, and WebGL!

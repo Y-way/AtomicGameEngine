@@ -917,6 +917,26 @@ void UI::SetDebugHudExtents(bool useRootExtent, const IntVector2& position, cons
 
 }
 
+void UI::CycleDebugHudMode()
+{
+    SystemUI::DebugHud* hud = GetSubsystem<SystemUI::DebugHud>();
+
+    if (!hud)
+        return;
+
+    hud->CycleMode();
+}
+
+void UI::SetDebugHudProfileMode(DebugHudProfileMode mode)
+{
+    SystemUI::DebugHud* hud = GetSubsystem<SystemUI::DebugHud>();
+
+    if (!hud)
+        return;
+
+    hud->SetProfilerMode(mode);
+}
+
 void UI::ShowConsole(bool value)
 {
     SystemUI::Console* console = GetSubsystem<SystemUI::Console>();
