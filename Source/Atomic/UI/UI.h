@@ -25,6 +25,7 @@
 #include <ThirdParty/TurboBadger/tb_widgets_listener.h>
 
 #include "../Core/Object.h"
+#include "../UI/UIEnums.h"
 #include "../UI/UIBatch.h"
 
 namespace Atomic
@@ -93,8 +94,16 @@ public:
     void GetTBIDString(unsigned id, String& value);
 
     SystemUI::MessageBox *ShowSystemMessageBox(const String& title, const String& message);
+
+    // Debug HUD
+
     void ShowDebugHud(bool value);
     void ToggleDebugHud();
+
+    /// Cycle debug HUD between showing primitive stats, current mode, profiler data, all three or none
+    void CycleDebugHudMode();
+
+    void SetDebugHudProfileMode(DebugHudProfileMode mode);
 
     void SetDebugHudExtents(bool useRootExtents = true, const IntVector2& position = IntVector2::ZERO, const IntVector2& size = IntVector2::ZERO);
 

@@ -204,7 +204,11 @@ namespace AtomicEngine
                     scriptMap = svm[svmDepth++];
                     scriptMap.CopyVariantMap(eventData);
                     nativeEventData = NativeEvents.GetNativeEventData(eventType, scriptMap);
-                    nativeEventData.sourceEventData = eventData;
+
+                    // This check can be removed once ATOMIC-1381 is resolved
+                    // https://github.com/AtomicGameEngine/AtomicGameEngine/issues/1381
+                    if (nativeEventData != null)
+                        nativeEventData.sourceEventData = eventData;
                 }
 
                 receiver.HandleEvent(eventType, scriptMap, nativeEventData);
@@ -354,7 +358,7 @@ namespace AtomicEngine
             {
                 if (logWrapUnknownNative)
                 {
-                    Log.Info("WrapNative returning null for unknown class: " + csi_Atomic_RefCounted_GetTypeName(native));
+                    Log.Info("WrapNative returning null for unknown class: " + GetNativeTypeName(native));
                 }
 
                 return null;
@@ -387,8 +391,13 @@ namespace AtomicEngine
             return (T)r;
         }
 
+        internal static string GetNativeTypeName(IntPtr native)
+        {
+            return System.Runtime.InteropServices.Marshal.PtrToStringAnsi(csi_Atomic_RefCounted_GetTypeName(native));
+        }
+
         [DllImport(Constants.LIBNAME, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-        private static extern string csi_Atomic_RefCounted_GetTypeName(IntPtr self);
+        private static extern IntPtr csi_Atomic_RefCounted_GetTypeName(IntPtr self);
 
         [DllImport(Constants.LIBNAME, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
         private static extern int csi_Atomic_RefCounted_Refs(IntPtr self);

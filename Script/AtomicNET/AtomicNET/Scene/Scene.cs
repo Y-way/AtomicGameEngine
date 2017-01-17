@@ -14,18 +14,75 @@ namespace AtomicEngine
             {
                 //Log.Info($"Node ADDED: {e.Node.Name}");
 
+                // The NodeAdded event is generated when adding a node as a child
+
+                e.Node.GetComponents<CSComponent>(componentVector);
+
+                for (uint i = 0; i < componentVector.Size; i++)
+                {
+                    AddCSComponent(componentVector[i]);
+                }
+
+                componentVector.Clear();
+
             });
 
             SubscribeToEvent<NodeRemovedEvent>(this, e =>
             {
                 //Log.Info($"Node REMOVED: {e.Node.Name}");
 
+                // The NodeRemoved event is generated when explicitly removing nodes from a scene
+                // For general cleanup, it will not be generated
+                
+                e.Node.GetComponents<CSComponent>(componentVector);
+
+                for (uint i = 0; i < componentVector.Size; i++)
+                {
+                    HandleComponentRemoved(componentVector[i]);
+                }
+
+                componentVector.Clear();
+
             });
 
             SubscribeToEvent<CSComponentLoadEvent>(this, HandleCSComponentLoad);
 
-            SubscribeToEvent<ComponentAddedEvent>(this, HandleComponentAdded);
-            SubscribeToEvent<ComponentRemovedEvent>(this, HandleComponentRemoved);
+            SubscribeToEvent<ComponentAddedEvent>(this, e =>
+            {
+                Component component = null;
+
+                try
+                {
+                    // will throw if component isn't a known native
+                    component = e.Component;
+                }
+                catch
+                {
+                    return;
+                }
+
+                HandleComponentAdded(component);
+
+            });
+
+
+            SubscribeToEvent<ComponentRemovedEvent>(this, e =>
+            {
+                Component component = null;
+
+                try
+                {
+                    // will throw if component isn't a known native
+                    component = e.Component;
+                }
+                catch
+                {
+                    return;
+                }
+
+                HandleComponentRemoved(component);
+
+            });
 
             // Update variable timestep logic
             SubscribeToEvent<SceneUpdateEvent>(this, HandleSceneUpdate);
@@ -186,51 +243,6 @@ namespace AtomicEngine
             }
         }
 
-        void HandleComponentRemoved(ComponentRemovedEvent e)
-        {
-            Component component;
-
-            try
-            {
-                // will throw if component isn't a known native
-                component = e.Component;
-            }
-            catch
-            {
-                return;
-            }
-
-            if (component.GetType() == typeof(PhysicsWorld) || component.GetType() == typeof(PhysicsWorld2D))
-            {
-                UnsubscribeFromEvent<PhysicsPreStepEvent>();
-                UnsubscribeFromEvent<PhysicsPostStepEvent>();
-            }
-
-            if (component.GetType().GetTypeInfo().IsSubclassOf(typeof(CSComponent)))
-            {
-                var csc = (CSComponent)component;
-
-                CSComponentInfo info;
-                if (!CSComponentCore.csinfoLookup.TryGetValue(csc.GetType(), out info))
-                {
-                    return;
-                }
-
-                cscomponentStart.Remove(csc);
-
-                List<CSComponent> cslist;
-
-                if (!cscomponents.TryGetValue(info, out cslist))
-                {
-                    return;
-                }
-
-                cslist.Remove(csc);
-
-            }
-
-        }
-
         void HandleCSComponentLoad(CSComponentLoadEvent e)
         {
             var scriptMap = e.scriptMap;
@@ -289,42 +301,27 @@ namespace AtomicEngine
 
             cslist.Add(csc);
 
-            if (cscomponentStart.Contains(csc))
+            if (!csc.started)
             {
-                throw new InvalidOperationException("Scene.HandleComponentAdded CSComponent already added to start list");
-            }
+                if (cscomponentStart.Contains(csc))
+                {
+                    throw new InvalidOperationException("Scene.HandleComponentAdded CSComponent already added to start list");
+                }
 
-            if (csc.started)
-            {
-                throw new InvalidOperationException("Scene.HandleComponentAdded CSComponent already started");
-            }
 
-            cscomponentStart.Add(csc);
+                cscomponentStart.Add(csc);
+            }
 
         }
 
-        void HandleComponentAdded(ComponentAddedEvent e)
+        void HandleComponentAdded(Component component)
         {
-            Component component;
-
-            try
-            {
-                // will throw if component isn't a known native
-                component = e.Component;
-            }
-            catch
-            {
-                return;
-            }
-            
 
             // Check null (CSComponent) or other abstract component
             if (component == null)
             {                
                 return;
             }
-
-            // Log.Info($"Component {component.TypeName} ADDED From Node {e.Node.Name}");
 
             if (component.GetType() == typeof(PhysicsWorld) || component.GetType() == typeof(PhysicsWorld2D))
             {
@@ -337,10 +334,45 @@ namespace AtomicEngine
             {
                 var csc = (CSComponent)component;
                 AddCSComponent(csc);
+            }
+
+        }
+
+        void HandleComponentRemoved(Component component)
+        {
+            if (component.GetType() == typeof(PhysicsWorld) || component.GetType() == typeof(PhysicsWorld2D))
+            {
+                UnsubscribeFromEvent<PhysicsPreStepEvent>();
+                UnsubscribeFromEvent<PhysicsPostStepEvent>();
+            }
+
+            if (component.GetType().GetTypeInfo().IsSubclassOf(typeof(CSComponent)))
+            {
+                var csc = (CSComponent)component;
+
+                CSComponentInfo info;
+
+                if (!CSComponentCore.csinfoLookup.TryGetValue(csc.GetType(), out info))
+                {
+                    return;
+                }
+
+                cscomponentStart.Remove(csc);
+
+                List<CSComponent> cslist;
+
+                if (!cscomponents.TryGetValue(info, out cslist))
+                {
+                    return;
+                }
+
+                cslist.Remove(csc);
 
             }
 
         }
+
+        Vector<CSComponent> componentVector = new Vector<CSComponent>();
 
         Dictionary<CSComponentInfo, List<CSComponent>> cscomponents = new Dictionary<CSComponentInfo, List<CSComponent>>();
         List<CSComponent> cscomponentStart = new List<CSComponent>();        

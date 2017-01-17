@@ -35,7 +35,8 @@ class CreateProject extends ModalWindow {
 
         this.projectPath = projectPath;
         this.projectTemplate = projectTemplate;
-        this.defaultLang = Preferences.getInstance().editorFeatures.defaultLanguage;
+        this.defaultPath = Preferences.getInstance().editorFeatures.defaultPath;
+        this.defaultLanguage = Preferences.getInstance().editorFeatures.defaultLanguage;
 
         this.init("Create Project", "AtomicEditor/editor/ui/createproject.tb.txt");
 
@@ -52,23 +53,9 @@ class CreateProject extends ModalWindow {
         this.html5Button = this.addPlatformButton("html5", "AtomicEditor/editor/images/HTML5128.png");
 
         if (!projectTemplate.screenshot)
-            this.image.visibility = Atomic.UI_WIDGET_VISIBILITY_GONE;
+            this.image.visibility = Atomic.UI_WIDGET_VISIBILITY.UI_WIDGET_VISIBILITY_GONE;
         else
             this.image.image = projectTemplate.screenshot;
-
-        var fileSystem = Atomic.getFileSystem();
-
-        var userDocuments = fileSystem.userDocumentsDir;
-
-        if (Atomic.platform == "MacOSX") {
-
-            userDocuments += "Documents/AtomicProjects";
-
-        } else {
-
-            userDocuments += "AtomicProjects";
-
-        }
 
         // If we're specifying where to put the project (initially), then we are opening
         // an example directly so use the same name
@@ -76,7 +63,7 @@ class CreateProject extends ModalWindow {
             this.projectNameField.text = projectTemplate.name;
         }
 
-        this.projectPathField.text = projectPath ? projectPath : userDocuments;
+        this.projectPathField.text = (projectPath) ? projectPath : this.defaultPath;
         this.populateLanguageSelectionList();
 
         // Need to manually set the focus so the contents get auto-selected
@@ -106,7 +93,7 @@ class CreateProject extends ModalWindow {
 
         button.layoutParams = lp;
 
-        button.gravity = Atomic.UI_GRAVITY_ALL;
+        button.gravity = Atomic.UI_GRAVITY.UI_GRAVITY_ALL;
 
         var image = new Atomic.UIImageWidget();
         image.image = platformLogo;
@@ -119,7 +106,7 @@ class CreateProject extends ModalWindow {
             greenplus.image = "AtomicEditor/editor/images/green_plus.png";
             rect = [size - 18, 2, size - 2, 18];
             greenplus.rect = rect;
-            greenplus.visibility = Atomic.UI_WIDGET_VISIBILITY_INVISIBLE;
+            greenplus.visibility = Atomic.UI_WIDGET_VISIBILITY.UI_WIDGET_VISIBILITY_INVISIBLE;
             button.addChild(greenplus);
             button["greenPlus"] = greenplus;
         }
@@ -222,7 +209,7 @@ class CreateProject extends ModalWindow {
                 fileSystem.rename(folder + fileResults[0], folder + name + ".atomic");
             } else {
                 // Just create the file.  We either don't have one existing, or we have more than one and don't know which one to rename
-                var file = new Atomic.File(folder + name + ".atomic", Atomic.FILE_WRITE);
+                var file = new Atomic.File(folder + name + ".atomic", Atomic.FileMode.FILE_WRITE);
                 file.close();
             }
 
@@ -249,7 +236,7 @@ class CreateProject extends ModalWindow {
                 platforms : platforms
             };
 
-            var jsonFile = new Atomic.File(folder + "Settings/Project.json", Atomic.FILE_WRITE);
+            var jsonFile = new Atomic.File(folder + "Settings/Project.json", Atomic.FileMode.FILE_WRITE);
             if (jsonFile.isOpen()) {
                 jsonFile.writeString(JSON.stringify(projectSettings, null, 2));
                 jsonFile.flush();
@@ -295,14 +282,14 @@ class CreateProject extends ModalWindow {
 
         if (selectedLanguage == "CSharp" || selectedLanguage == "C#") {
 
-            this.html5Button["greenPlus"].visibility = Atomic.UI_WIDGET_VISIBILITY_INVISIBLE;
+            this.html5Button["greenPlus"].visibility = Atomic.UI_WIDGET_VISIBILITY.UI_WIDGET_VISIBILITY_INVISIBLE;
             this.html5Button.value = 0;
             this.html5Button.disable();
 
         } else {
 
             this.html5Button.enable();
-            this.html5Button["greenPlus"].visibility = this.html5Button.value == 1 ? Atomic.UI_WIDGET_VISIBILITY_VISIBLE : Atomic.UI_WIDGET_VISIBILITY_INVISIBLE;
+            this.html5Button["greenPlus"].visibility = this.html5Button.value == 1 ? Atomic.UI_WIDGET_VISIBILITY.UI_WIDGET_VISIBILITY_VISIBLE : Atomic.UI_WIDGET_VISIBILITY.UI_WIDGET_VISIBILITY_INVISIBLE;
 
         }
 
@@ -310,7 +297,7 @@ class CreateProject extends ModalWindow {
 
     handleWidgetEvent(ev: Atomic.UIWidgetEvent) {
 
-        if (ev.type == Atomic.UI_EVENT_TYPE_CLICK) {
+        if (ev.type == Atomic.UI_EVENT_TYPE.UI_EVENT_TYPE_CLICK) {
 
             var id = ev.target.id;
 
@@ -328,19 +315,25 @@ class CreateProject extends ModalWindow {
                 return true;
             }
             else if (id == "create") {
-
-                if ( this.tryProjectCreate() ) {
-                    if ( Preferences.getInstance().editorFeatures.defaultLanguage != this.projectLanguageField.text ) {
-                        Preferences.getInstance().editorFeatures.defaultLanguage = this.projectLanguageField.text;
-                        Preferences.getInstance().write();
+                if (this.tryProjectCreate()) {
+                    let needsWrite = false;
+                    let prefs = Preferences.getInstance();
+                    if (prefs.editorFeatures.defaultLanguage != this.projectLanguageField.text) {
+                        prefs.editorFeatures.defaultLanguage = this.projectLanguageField.text;
+                        needsWrite = true;
                     }
+                    if (prefs.editorFeatures.defaultPath != this.projectPathField.text) {
+                        prefs.editorFeatures.defaultPath = this.projectPathField.text;
+                        needsWrite = true;
+                    }
+                    if (needsWrite) prefs.write();
                     this.hide();
                 }
 
                 return true;
 
             }
-        } else if (ev.type == Atomic.UI_EVENT_TYPE_CHANGED) {
+        } else if (ev.type == Atomic.UI_EVENT_TYPE.UI_EVENT_TYPE_CHANGED) {
 
             // handle language change
             if (ev.target.id == "project_language") {
@@ -353,7 +346,7 @@ class CreateProject extends ModalWindow {
                 this.desktopButton.value = 1;
 
             } else if (ev.target["greenPlus"]) {
-                ev.target["greenPlus"].visibility = ev.target.value == 1 ? Atomic.UI_WIDGET_VISIBILITY_VISIBLE : Atomic.UI_WIDGET_VISIBILITY_INVISIBLE;
+                ev.target["greenPlus"].visibility = ev.target.value == 1 ? Atomic.UI_WIDGET_VISIBILITY.UI_WIDGET_VISIBILITY_VISIBLE : Atomic.UI_WIDGET_VISIBILITY.UI_WIDGET_VISIBILITY_INVISIBLE;
             }
 
 
@@ -385,9 +378,9 @@ class CreateProject extends ModalWindow {
             if ( this.projectLanguageFieldSource.getItemStr( ii ) == "TypeScript" ) tsrank = ii;
         }
 
-        if ( this.defaultLang == "JavaScript" ) defrank = jsrank; // which is the default language
-        if ( this.defaultLang == "CSharp" ) defrank = csrank;
-        if ( this.defaultLang == "TypeScript" ) defrank = tsrank;
+        if ( this.defaultLanguage == "JavaScript" ) defrank = jsrank; // which is the default language
+        if ( this.defaultLanguage == "CSharp" ) defrank = csrank;
+        if ( this.defaultLanguage == "TypeScript" ) defrank = tsrank;
 
         if ( defrank > -1 ) this.projectLanguageField.value = defrank;  // the default language is present
         else if ( jsrank > -1 ) this.projectLanguageField.value = jsrank;  // js is present
@@ -410,7 +403,8 @@ class CreateProject extends ModalWindow {
     // if we have specified a projectPath, the dest will not be the combination of path + name
     projectPath: string;
     projectTemplate: ProjectTemplates.ProjectTemplateDefinition;
-    defaultLang: string;
+    defaultPath: string;
+    defaultLanguage: string;
 }
 
 
