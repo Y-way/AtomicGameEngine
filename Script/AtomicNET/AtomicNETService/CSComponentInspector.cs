@@ -97,6 +97,50 @@ namespace AtomicTools
 
         }
 
+        private void DecodeTypeHandleTypeName(BlobReader sigReader, out String typeName, out bool isEnum)
+        {
+            typeName = "";
+            isEnum = false;
+
+            EntityHandle token = sigReader.ReadTypeHandle();
+            HandleKind tokenType = token.Kind;
+
+            if (tokenType == HandleKind.TypeDefinition)
+            {
+
+                // can store local enum typedefs
+                // enum initializers are stored as constant value in the IL
+
+                var typeDef = metaReader.GetTypeDefinition((TypeDefinitionHandle)token);
+
+                var baseTypeToken = typeDef.BaseType;
+
+                if (baseTypeToken.Kind != HandleKind.TypeReference)
+                {
+                    return;
+                }
+                    
+
+                var baseTypeRef = metaReader.GetTypeReference((TypeReferenceHandle)baseTypeToken);
+
+                if (metaReader.GetString(baseTypeRef.Name) != "Enum")
+                    return;
+
+                isEnum = true;
+                typeName = metaReader.GetString(typeDef.Name);
+
+            }
+            else if (tokenType == HandleKind.TypeReference)
+            {
+
+                // TypeReference, ok
+                var typeRef = metaReader.GetTypeReference((TypeReferenceHandle)token);
+
+                typeName = metaReader.GetString(typeRef.Name);
+
+            }
+        }
+
         private void InspectFields(FieldDefinitionHandleCollection fields)
         {
             foreach (var fieldHandle in fields)
@@ -125,49 +169,27 @@ namespace AtomicTools
 
                         string typeName = typeCode.ToString();
 
-                        if (typeCode == SignatureTypeCode.TypeHandle)
+                        if (typeCode == SignatureTypeCode.SZArray)
                         {
+                            inspectorField.IsArray = true;
+                            SignatureTypeCode code = sigReader.ReadSignatureTypeCode();
 
-                            EntityHandle token = sigReader.ReadTypeHandle();
-                            HandleKind tokenType = token.Kind;
-
-                            if (tokenType == HandleKind.TypeDefinition)
+                            if (code == SignatureTypeCode.TypeHandle)
                             {
-
-                                // can store local enum typedefs
-                                // enum initializers are stored as constant value in the IL
-
-                                var typeDef = metaReader.GetTypeDefinition((TypeDefinitionHandle)token);
-
-                                var baseTypeToken = typeDef.BaseType;
-
-                                if (baseTypeToken.Kind != HandleKind.TypeReference)
-                                    continue;
-
-                                var baseTypeRef = metaReader.GetTypeReference((TypeReferenceHandle)baseTypeToken);
-
-                                if (metaReader.GetString(baseTypeRef.Name) != "Enum")
-                                    continue;
-
-                                inspectorField.IsEnum = true;
-                                typeName = metaReader.GetString(typeDef.Name);
-
-                            }
-                            else if (tokenType == HandleKind.TypeReference)
-                            {
-
-                                // TypeReference, ok
-                                var typeRef = metaReader.GetTypeReference((TypeReferenceHandle)token);
-
-                                typeName = metaReader.GetString(typeRef.Name);
-
+                                bool isEnum;
+                                DecodeTypeHandleTypeName(sigReader, out typeName, out isEnum);
                             }
                             else
                             {
-                                // ???
-                                continue;
+                                typeName = code.ToString();
                             }
-
+                            
+                        }
+                        else if (typeCode == SignatureTypeCode.TypeHandle)
+                        {
+                            bool isEnum;
+                            DecodeTypeHandleTypeName(sigReader, out typeName, out isEnum);
+                            inspectorField.IsEnum = isEnum;
                         }
 
                         inspectorField.TypeName = typeName;
@@ -295,8 +317,8 @@ namespace AtomicTools
 
                 var typeCode = argsReader.ReadSerializationTypeCode();
 
-                // support string custom attr for now to simplify things
-                if (typeCode != SerializationTypeCode.String)
+                // support string/int custom attr for now to simplify things
+                if (typeCode != SerializationTypeCode.String && typeCode != SerializationTypeCode.Int32)
                     return false;
 
                 string name;
@@ -304,12 +326,23 @@ namespace AtomicTools
                 if (!CrackStringInAttributeValue(out name, ref argsReader))
                     return false;
 
-                string value;
+                if (typeCode == SerializationTypeCode.Int32)
+                {
+                    int value;
+                    value = argsReader.ReadInt32();
+                    inspectorField.CustomAttrNamedArgs[name] = value.ToString();
+                }
+                else
+                {
+                    string value;
 
-                if (!CrackStringInAttributeValue(out value, ref argsReader))
-                    return false;
+                    if (!CrackStringInAttributeValue(out value, ref argsReader))
+                        return false;
 
-                inspectorField.CustomAttrNamedArgs[name] = value;
+                    inspectorField.CustomAttrNamedArgs[name] = value;
+                }
+
+                
 
             }
 

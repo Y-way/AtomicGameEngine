@@ -29,6 +29,34 @@
 namespace Atomic
 {
 
+
+struct FieldInfo
+{
+    FieldInfo()
+    {
+        name_ = "UNINITIALIZED_FIELDINFO";
+        variantType_ = VAR_NONE;
+        isArray_ = false;
+        fixedArraySize_ = 0;
+    }
+
+    FieldInfo(const String& name, VariantType variantType, const String& resourceTypeName = String::EMPTY, bool isArray = false, unsigned fixedArraySize = 0)
+    {
+        name_ = name;        
+        variantType_ = variantType;
+        resourceTypeName_ = resourceTypeName;
+        isArray_ = isArray;
+        fixedArraySize_ = fixedArraySize;
+    }
+
+    String name_;
+    VariantType variantType_;
+    // for resource ref variants
+    String resourceTypeName_;
+    bool isArray_;
+    unsigned fixedArraySize_;
+};
+
 struct EnumInfo
 {
     EnumInfo(const String& name = String::EMPTY, const Variant& v = Variant::EMPTY)
@@ -42,7 +70,7 @@ struct EnumInfo
 };
 
 // TODO: these should be broken out into some class info structs, getting unwieldy
-typedef HashMap<String, VariantType> FieldMap;
+typedef HashMap<String, FieldInfo> FieldMap;
 typedef HashMap<String, Vector<EnumInfo>> EnumMap;
 typedef HashMap<String, String> FieldTooltipMap;
 
@@ -80,7 +108,7 @@ protected:
     void Clear();
 
     void AddEnum(const String& enumName, const EnumInfo& enumInfo, const String& classname = String::EMPTY);
-    void AddField(const String& fieldName, VariantType variantType, const String& classname = String::EMPTY, const String& tooltip = String::EMPTY);
+    void AddField(const String& fieldName, VariantType variantType, const String& resourceTypeName = String::EMPTY, bool isArray = false, unsigned fixedArraySize = 0, const String& classname = String::EMPTY, const String& tooltip = String::EMPTY);
     void AddDefaultValue(const String& fieldName, const Variant& value, const String& classname = String::EMPTY);
 
     // only valid in editor
