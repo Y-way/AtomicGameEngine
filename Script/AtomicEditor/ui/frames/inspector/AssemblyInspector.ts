@@ -21,7 +21,6 @@
 //
 
 import InspectorWidget = require("./InspectorWidget");
-import ArrayEditWidget = require("./ArrayEditWidget");
 import InspectorUtils = require("./InspectorUtils");
 
 class AssemblyInspector extends InspectorWidget {
@@ -30,7 +29,7 @@ class AssemblyInspector extends InspectorWidget {
 
         super();
 
-        this.subscribeToEvent(this, "WidgetEvent", (data) => this.handleWidgetEvent(data));
+        this.subscribeToEvent(this, Atomic.UIWidgetEvent((data) => this.handleWidgetEvent(data)));
 
     }
 

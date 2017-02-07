@@ -21,7 +21,6 @@
 //
 
 import EditorUI = require("../EditorUI");
-import EditorEvents = require("../../editor/EditorEvents");
 import ModalWindow = require("./ModalWindow");
 import SearchBarFiltering = require("resources/SearchBarFiltering");
 
@@ -52,7 +51,7 @@ class ResourceSelection extends ModalWindow {
         this.setSize(800, 600);
         this.center();
 
-        this.searchEdit.subscribeToEvent(this.searchEdit, "WidgetEvent", (data) => this.handleWidgetEvent(data));
+        this.searchEdit.subscribeToEvent(this.searchEdit, Atomic.UIWidgetEvent((data) => this.handleWidgetEvent(data)));
 
     }
 
@@ -159,7 +158,7 @@ class ResourceSelection extends ModalWindow {
         var id = this.folderList.selectedItemID;
 
         if (id == "") {
-            this.sendEvent(EditorEvents.RemoveCurrentAssetAssigned);
+            this.callback(null, this.args);
             this.hide();
             return true;
         }

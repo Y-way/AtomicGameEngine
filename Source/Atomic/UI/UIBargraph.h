@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2014-2016 THUNDERBEAST GAMES LLC
+// Copyright (c) 2014-2017, THUNDERBEAST GAMES LLC All rights reserved
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,5 +20,30 @@
 // THE SOFTWARE.
 //
 
-export const MessageModalEvent = "MessageModalEvent";
-export const ResourceEditorChanged = "ResourceEditorChanged";
+#pragma once
+
+#include "UIWidget.h"
+
+#include "../Input/Input.h"
+
+namespace Atomic
+{
+
+class UIBargraph : public UIWidget
+{
+    ATOMIC_OBJECT(UIBargraph, UIWidget)
+
+public:
+
+    UIBargraph(Context* context, bool createWidget = true);
+    virtual ~UIBargraph();
+
+protected:
+
+    virtual bool OnEvent(const tb::TBWidgetEvent &ev);
+
+private:
+
+};
+
+}

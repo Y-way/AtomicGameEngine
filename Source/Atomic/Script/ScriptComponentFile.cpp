@@ -53,10 +53,11 @@ void ScriptComponentFile::AddEnum(const String& enumName, const EnumInfo& enumIn
     enumValues.Push(enumInfo);
 }
 
-void ScriptComponentFile::AddField(const String& fieldName, VariantType variantType, const String &classname, const String& tooltip)
+void ScriptComponentFile::AddField(const String& fieldName, VariantType variantType, const String& resourceTypeName, bool isArray, unsigned fixedArraySize, const String &classname, const String& tooltip)
 {
     FieldMap& fields = classFields_[classname];
-    fields[fieldName] = variantType;
+    FieldInfo finfo(fieldName, variantType, resourceTypeName, isArray, fixedArraySize);
+    fields[fieldName] = finfo;
 
     if (tooltip.Length())
     {
@@ -145,23 +146,51 @@ void ScriptComponentFile::GetDefaultFieldValue(const String& name, Variant& v,co
     if (!fieldMap)
         return;
 
-    const VariantType* variantType = (*fieldMap)[name];
+    const FieldInfo* finfo = (*fieldMap)[name];
+
+    if (!finfo || finfo->isArray_)
+        return;
+
+    VariantType variantType = finfo->variantType_;
+
     if (!variantType)
         return;
 
-    switch (*variantType)
+    switch (variantType)
     {
     case VAR_BOOL:
         v = false;
         break;
+    case VAR_INT:
+        v = 0;
+    case VAR_DOUBLE:
+        v = 0;
     case VAR_STRING:
         v = "";
         break;
     case VAR_FLOAT:
         v = 0.0f;
         break;
+    case VAR_VECTOR2:
+        v = Vector2::ZERO;
+        break;
     case VAR_VECTOR3:
         v = Vector3::ZERO;
+        break;
+    case VAR_VECTOR4:
+        v = Vector4::ZERO;
+        break;
+    case VAR_INTVECTOR2:
+        v = IntVector2::ZERO;
+        break;
+    case VAR_COLOR:
+        v = Color::WHITE;
+        break;
+    case VAR_QUATERNION:
+        v = Quaternion::IDENTITY;
+        break;
+    case VAR_RESOURCEREF:
+        v = Quaternion::IDENTITY;
         break;
     default:
         break;
