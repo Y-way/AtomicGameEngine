@@ -20,7 +20,6 @@
 // THE SOFTWARE.
 //
 
-import EditorEvents = require("../../editor/EditorEvents");
 export abstract class AbstractTextResourceEditorBuilder implements Editor.Extensions.ResourceEditorBuilder {
 
     abstract canHandleResource(resourcePath: string): boolean;
@@ -43,16 +42,19 @@ export abstract class AbstractTextResourceEditorBuilder implements Editor.Extens
         return `atomic://${ToolCore.toolEnvironment.toolDataDir}CodeEditor/MonacoEditor.html`;
     }
 
-    getEditor(resourceFrame: Atomic.UIWidget, resourcePath: string, tabContainer: Atomic.UITabContainer): Editor.ResourceEditor {
+    getEditor(resourceFrame: Atomic.UIWidget, resourcePath: string, tabContainer: Atomic.UITabContainer, lineNumber: number): Editor.ResourceEditor {
         const editor = new Editor.JSResourceEditor(resourcePath, tabContainer, this.getEditorUrl());
 
         // one time subscriptions waiting for the web view to finish loading.  This event
         // actually hits the editor instance before we can hook it, so listen to it on the
         // frame and then unhook it
-        editor.subscribeToEvent(EditorEvents.WebViewLoadEnd, (data) => {
-            editor.unsubscribeFromEvent(EditorEvents.WebViewLoadEnd);
+        editor.subscribeToEvent(WebView.WebViewLoadEndEvent((data) => {
+            editor.unsubscribeFromEvent(WebView.WebViewLoadEndEventType);
             this.loadCode(<Editor.JSResourceEditor>editor, resourcePath);
-        });
+            if (lineNumber > 0) {
+                (<Editor.JSResourceEditor>editor).gotoLineNumber(lineNumber);
+            }
+        }));
 
         // Cannot subscribe to WebMessage until the .ts side can return a Handler.Success() message
         // editor.subscribeToEvent(EditorEvents.WebMessage, (data) => {
@@ -68,15 +70,15 @@ export abstract class AbstractTextResourceEditorBuilder implements Editor.Extens
         //     }
         // });
 
-        editor.subscribeToEvent(EditorEvents.DeleteResourceNotification, (data) => {
+        editor.subscribeToEvent(Editor.EditorDeleteResourceNotificationEvent((data) => {
             const webClient = editor.webView.webClient;
             webClient.executeJavaScript(`HOST_resourceDeleted("${this.getNormalizedPath(data.path)}");`);
-        });
+        }));
 
-        editor.subscribeToEvent(EditorEvents.UserPreferencesChangedNotification, (data: EditorEvents.UserPreferencesChangedEvent) => {
+        editor.subscribeToEvent(Editor.UserPreferencesChangedNotificationEvent((data: Editor.UserPreferencesChangedNotificationEvent) => {
             const webClient = editor.webView.webClient;
             webClient.executeJavaScript(`HOST_preferencesChanged('${data.projectPreferences}','${data.applicationPreferences}');`);
-        });
+        }));
 
         return editor;
     }

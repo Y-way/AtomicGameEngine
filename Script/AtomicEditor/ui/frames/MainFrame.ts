@@ -28,13 +28,10 @@ import HierarchyFrame = require("./HierarchyFrame");
 import MainToolbar = require("ui//MainToolbar");
 import AnimationToolbar = require("ui//AnimationToolbar");
 
-import UIEvents = require("ui/UIEvents");
-
 import ScriptWidget = require("ui/ScriptWidget");
 import MainFrameMenu = require("./menus/MainFrameMenu");
 
 import MenuItemSources = require("./menus/MenuItemSources");
-import * as EditorEvents from "../../editor/EditorEvents";
 
 class MainFrame extends ScriptWidget {
 
@@ -47,6 +44,9 @@ class MainFrame extends ScriptWidget {
         this.inspectorlayout = <Atomic.UILayout> this.getWidget("inspectorlayout");
 
         this.getWidget("consolecontainer").visibility = Atomic.UI_WIDGET_VISIBILITY.UI_WIDGET_VISIBILITY_GONE;
+
+        this.statusText = <Atomic.UIEditField>this.getWidget("editorStatusText");
+        this.statusText.subscribeToEvent(Atomic.UpdateEvent((ev) => this.handleStatusAging(ev)));
 
         this.inspectorframe = new InspectorFrame();
         this.inspectorlayout.addChild(this.inspectorframe);
@@ -63,17 +63,17 @@ class MainFrame extends ScriptWidget {
 
         this.disableProjectMenus();
 
-        this.subscribeToEvent(UIEvents.ResourceEditorChanged, (data) => this.handleResourceEditorChanged(data));
+        this.subscribeToEvent(Editor.EditorResourceEditorChangedEvent((data) => this.handleResourceEditorChanged(data)));
 
-        this.subscribeToEvent("ProjectLoaded", (data) => {
+        this.subscribeToEvent(ToolCore.ProjectLoadedEvent((data) => {
             this.showWelcomeFrame(false);
             this.enableProjectMenus();
-        });
+        }));
 
-        this.subscribeToEvent(EditorEvents.ProjectUnloadedNotification, (data) => {
+        this.subscribeToEvent(Editor.ProjectUnloadedNotificationEvent((data) => {
             this.showWelcomeFrame(true);
             this.disableProjectMenus();
-        });
+        }));
 
         this.showWelcomeFrame(true);
 
@@ -159,9 +159,9 @@ class MainFrame extends ScriptWidget {
 
     }
 
-    handleResourceEditorChanged(data): void {
+    handleResourceEditorChanged(data: Editor.EditorResourceEditorChangedEvent): void {
 
-        var editor = <Editor.ResourceEditor> data.editor;
+        var editor = data.resourceEditor;
 
         if (editor) {
 
@@ -185,6 +185,20 @@ class MainFrame extends ScriptWidget {
         }
     }
 
+    showStatusText(message: string) {
+        this.statusText.text = message;  // display the status message
+        this.updateDelta = 10.0;         // start the clock for removing the text
+    }
+
+    handleStatusAging(ev) {    // to avoid showing stale status text
+        if ( this.updateDelta > 0 ) {
+           this.updateDelta -= ev.timeStep;
+           if ( this.updateDelta < 0 )
+                this.statusText.text = "";  // remove it after 10 seconds.
+        }
+    }
+
+
     projectframe: ProjectFrame;
     resourceframe: ResourceFrame;
     inspectorframe: InspectorFrame;
@@ -194,7 +208,8 @@ class MainFrame extends ScriptWidget {
     mainToolbar: MainToolbar;
     animationToolbar: AnimationToolbar;
     menu: MainFrameMenu;
-
+    statusText: Atomic.UIEditField;
+    updateDelta: number;
 }
 
 export = MainFrame;

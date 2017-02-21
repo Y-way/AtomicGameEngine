@@ -20,13 +20,11 @@
 // THE SOFTWARE.
 //
 
-import * as EditorEvents from "../editor/EditorEvents";
 import * as EditorUI from "../ui/EditorUI";
 import MainFrame = require("../ui/frames/MainFrame");
 import InspectorFrame = require("../ui/frames/inspector/InspectorFrame");
 import ModalOps = require("../ui/modal/ModalOps");
 import ResourceOps = require("../resources/ResourceOps");
-import Editor = require("../editor/Editor");
 
 /**
  * Generic registry for storing Editor Extension Services
@@ -71,9 +69,9 @@ export class ProjectServicesProvider extends ServicesProvider<Editor.HostExtensi
      * @param  {Atomic.UIWidget} topLevelWindow The top level window that will be receiving these events
      */
     subscribeToEvents(eventDispatcher: Editor.Extensions.EventDispatcher) {
-        eventDispatcher.subscribeToEvent(EditorEvents.LoadProjectNotification, (ev) => this.projectLoaded(ev));
-        eventDispatcher.subscribeToEvent(EditorEvents.CloseProject, (ev) => this.projectUnloaded(ev));
-        eventDispatcher.subscribeToEvent(EditorEvents.PlayerStartRequest, () => this.playerStarted());
+        eventDispatcher.subscribeToEvent(Editor.LoadProjectNotificationEvent((ev) => this.projectLoaded(ev)));
+        eventDispatcher.subscribeToEvent(Editor.EditorCloseProjectEvent((ev) => this.projectUnloaded(ev)));
+        eventDispatcher.subscribeToEvent(Editor.EditorPlayRequestEvent(() => this.playerStarted()));
     }
 
     /**
@@ -99,7 +97,7 @@ export class ProjectServicesProvider extends ServicesProvider<Editor.HostExtensi
      * Called when the project is loaded
      * @param  {[type]} data Event info from the project unloaded event
      */
-    projectLoaded(ev: Editor.EditorEvents.LoadProjectEvent) {
+    projectLoaded(ev: Editor.EditorLoadProjectEvent) {
         // Need to use a for loop and don't cache the length because the list of services *may* change while processing.  Extensions could be appended to the end
         for (let i = 0; i < this.registeredServices.length; i++) {
             let service = this.registeredServices[i];
@@ -141,15 +139,38 @@ export class ProjectServicesProvider extends ServicesProvider<Editor.HostExtensi
         return EditorUI.getEditor().getUserPreference(extensionName, preferenceName, defaultValue);
     }
 
+    /**
+     * Return a preference value or the provided default from the global user settings file
+     * @param  {string} groupName name of the section the preference lives under
+     * @param  {string} preferenceName name of the preference to retrieve
+     * @param  {number | boolean | string} defaultValue value to return if pref doesn't exist
+     * @return {number|boolean|string}
+     */
+    getApplicationPreference(settingsGroup: string, preferenceName: string, defaultValue?: number): number;
+    getApplicationPreference(settingsGroup: string, preferenceName: string, defaultValue?: string): string;
+    getApplicationPreference(settingsGroup: string, preferenceName: string, defaultValue?: boolean): boolean;
+    getApplicationPreference(settingsGroup: string, preferenceName: string, defaultValue?: any): any {
+        return EditorUI.getEditor().getApplicationPreference(settingsGroup, preferenceName, defaultValue);
+    }
 
     /**
-     * Sets a user preference value in the user settings file
+     * Sets a user preference value in the project user settings file
      * @param  {string} extensionName name of the extension the preference lives under
      * @param  {string} preferenceName name of the preference to set
      * @param  {number | boolean | string} value value to set
      */
     setUserPreference(extensionName: string, preferenceName: string, value: number | boolean | string) {
         EditorUI.getEditor().setUserPreference(extensionName, preferenceName, value);
+    }
+
+    /**
+     * Sets an editor preference value in the global application settings file
+     * @param  {string} extensionName name of the extension the preference lives under
+     * @param  {string} preferenceName name of the preference to set
+     * @param  {number | boolean | string} value value to set
+     */
+    setApplicationPreference(extensionName: string, preferenceName: string, value: number | boolean | string) {
+        EditorUI.getEditor().setApplicationPreference(extensionName, preferenceName, value);
     }
 
     /**
@@ -177,10 +198,10 @@ export class ResourceServicesProvider extends ServicesProvider<Editor.HostExtens
      * @param  {Atomic.UIWidget} topLevelWindow The top level window that will be receiving these events
      */
     subscribeToEvents(eventDispatcher: Editor.Extensions.EventDispatcher) {
-        eventDispatcher.subscribeToEvent(EditorEvents.SaveResourceNotification, (ev) => this.saveResource(ev));
-        eventDispatcher.subscribeToEvent(EditorEvents.DeleteResourceNotification, (ev) => this.deleteResource(ev));
-        eventDispatcher.subscribeToEvent(EditorEvents.RenameResourceNotification, (ev) => this.renameResource(ev));
-        eventDispatcher.subscribeToEvent(EditorEvents.EditResource, (ev) => this.editResource(ev));
+        eventDispatcher.subscribeToEvent(Editor.EditorSaveResourceNotificationEvent((ev) => this.saveResource(ev)));
+        eventDispatcher.subscribeToEvent(Editor.EditorDeleteResourceNotificationEvent((ev) => this.deleteResource(ev)));
+        eventDispatcher.subscribeToEvent(Editor.EditorRenameResourceNotificationEvent((ev) => this.renameResource(ev)));
+        eventDispatcher.subscribeToEvent(Editor.EditorEditResourceEvent((ev) => this.editResource(ev)));
 
     }
 
@@ -188,7 +209,7 @@ export class ResourceServicesProvider extends ServicesProvider<Editor.HostExtens
      * Called after a resource has been saved
      * @param  {Editor.EditorEvents.SaveResourceEvent} ev
      */
-    saveResource(ev: Editor.EditorEvents.SaveResourceEvent) {
+    saveResource(ev: Editor.EditorSaveResourceEvent) {
         // run through and find any services that can handle this.
         this.registeredServices.forEach((service) => {
             try {
@@ -205,7 +226,7 @@ export class ResourceServicesProvider extends ServicesProvider<Editor.HostExtens
     /**
      * Called when a resource has been deleted
      */
-    deleteResource(ev: Editor.EditorEvents.DeleteResourceEvent) {
+    deleteResource(ev: Editor.EditorDeleteResourceEvent) {
         this.registeredServices.forEach((service) => {
             try {
                 // Verify that the service contains the appropriate methods and that it can delete
@@ -220,9 +241,9 @@ export class ResourceServicesProvider extends ServicesProvider<Editor.HostExtens
 
     /**
      * Called when a resource has been renamed
-     * @param  {Editor.EditorEvents.RenameResourceEvent} ev
+     * @param  ev
      */
-    renameResource(ev: Editor.EditorEvents.RenameResourceEvent) {
+    renameResource(ev: Editor.EditorRenameResourceNotificationEvent) {
         this.registeredServices.forEach((service) => {
             try {
                 // Verify that the service contains the appropriate methods and that it can handle the rename
@@ -239,7 +260,7 @@ export class ResourceServicesProvider extends ServicesProvider<Editor.HostExtens
      * Called when a resource is about to be edited
      * @param  {Editor.EditorEvents.EditResourceEvent} ev
      */
-    editResource(ev: Editor.EditorEvents.EditResourceEvent) {
+    editResource(ev: Editor.EditorEditResourceEvent) {
         this.registeredServices.forEach((service) => {
             try {
                 // Verify that the service contains the appropriate methods and that it can handle the edit
@@ -277,15 +298,15 @@ export class SceneServicesProvider extends ServicesProvider<Editor.HostExtension
      * @param  {Atomic.UIWidget} topLevelWindow The top level window that will be receiving these events
      */
     subscribeToEvents(eventDispatcher: Editor.Extensions.EventDispatcher) {
-        eventDispatcher.subscribeToEvent(EditorEvents.ActiveSceneEditorChange, (ev) => this.activeSceneEditorChange(ev));
-        eventDispatcher.subscribeToEvent(EditorEvents.SceneClosed, (ev) => this.sceneClosed(ev));
+        eventDispatcher.subscribeToEvent(Editor.EditorActiveSceneEditorChangeEvent((ev) => this.activeSceneEditorChange(ev)));
+        eventDispatcher.subscribeToEvent(Editor.EditorSceneClosedEvent((ev) => this.sceneClosed(ev)));
     }
 
     /**
      * Called after an active scene editor change
      * @param  {Editor.EditorEvents.ActiveSceneEditorChangeEvent} ev
      */
-    activeSceneEditorChange(ev: Editor.EditorEvents.ActiveSceneEditorChangeEvent) {
+    activeSceneEditorChange(ev: Editor.EditorActiveSceneEditorChangeEvent) {
         // run through and find any services that can handle this.
         this.registeredServices.forEach((service) => {
             try {
@@ -303,7 +324,7 @@ export class SceneServicesProvider extends ServicesProvider<Editor.HostExtension
      * Called after a scene is closed
      * @param  {Editor.EditorEvents.SceneClosedEvent} ev
      */
-    sceneClosed(ev: Editor.EditorEvents.SceneClosedEvent) {
+    sceneClosed(ev: Editor.EditorSceneClosedEvent) {
         // run through and find any services that can handle this.
         this.registeredServices.forEach((service) => {
             try {
@@ -370,6 +391,17 @@ export class UIServicesProvider extends ServicesProvider<Editor.HostExtensions.U
     }
 
     /**
+     * Will load a resource editor or navigate to an already loaded resource editor by path
+     * @param resourcePath full path to resource to load 
+     * @param lineNumber optional line number to navigate to
+     * @return {Editor.ResourceEditor}
+     */
+    loadResourceEditor(resourcePath: string, lineNumber?: number): Editor.ResourceEditor {
+        this.mainFrame.resourceframe.sendEvent(Editor.EditorEditResourceEventData({path: resourcePath, lineNumber: lineNumber}));
+        return this.mainFrame.resourceframe.currentResourceEditor;
+    }
+
+    /**
      * Adds a new menu to the hierarchy context menu
      * @param  {string} id
      * @param  {any} items
@@ -421,12 +453,21 @@ export class UIServicesProvider extends ServicesProvider<Editor.HostExtensions.U
             this.inspectorFrame.loadCustomInspectorWidget(customInspector);
         }
     }
+
     /**
      * Disaplays a modal window
      * @param  {Editor.Modal.ModalWindow} window
      */
     showModalWindow(windowText: string, uifilename: string, handleWidgetEventCB: (ev: Atomic.UIWidgetEvent) => void): Editor.Modal.ExtensionWindow {
-        return this.modalOps.showExtensionWindow(windowText, uifilename, handleWidgetEventCB);
+        return this.modalOps.showExtensionWindow(windowText, uifilename, handleWidgetEventCB, true);
+    }
+
+    /**
+     * Disaplays a modal window
+     * @param  {Editor.Modal.ModalWindow} window
+     */
+    showNonModalWindow(windowText: string, uifilename: string, handleWidgetEventCB: (ev: Atomic.UIWidgetEvent) => void): Editor.Modal.ExtensionWindow {
+        return this.modalOps.showExtensionWindow(windowText, uifilename, handleWidgetEventCB, false);
     }
 
     /**
@@ -434,7 +475,7 @@ export class UIServicesProvider extends ServicesProvider<Editor.HostExtensions.U
      * @param  {string} windowText
      * @param  {string} message
      */
-    showModalError(windowText: string, message: string) {
+    showModalError(windowText: string, message: string): Atomic.UIMessageWindow {
         return this.modalOps.showError(windowText, message);
     }
 
@@ -567,7 +608,7 @@ export class UIServicesProvider extends ServicesProvider<Editor.HostExtensions.U
      * Hooks into web messages coming in from web views
      * @param  {[String|Object]} data
      */
-    handleWebMessage(data) {
+    handleWebMessage(data: WebView.WebMessageEvent) {
         let messageType;
         let messageObject;
 
@@ -598,6 +639,6 @@ export class UIServicesProvider extends ServicesProvider<Editor.HostExtensions.U
      */
     subscribeToEvents(eventDispatcher: Editor.Extensions.EventDispatcher) {
         // Placeholder for when UI events published by the editor need to be listened for
-        eventDispatcher.subscribeToEvent(EditorEvents.WebMessage, (ev) => this.handleWebMessage(ev));
+        eventDispatcher.subscribeToEvent(WebView.WebMessageEvent((ev) => this.handleWebMessage(ev)));
     }
 }

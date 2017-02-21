@@ -26,23 +26,48 @@ declare module Atomic {
 
     // end subsystems
 
-    // Base interface for events, contains eventType string and callback
-    interface EventMetaData
-    {
-        _eventType: string;
-        _callback: any;
+    /** Base for all event types */
+    type EventType = string;
+
+    /** Base for all event callback data */
+    type EventData = Object;
+
+    /** Base interface for events, contains eventType string and callback */
+    interface EventMetaData {
+        /**@internal*/
+        _eventType?: string;
+        /**@internal*/
+        _callback?: (...params) => any;
     }
 
-    interface NativeEvent extends EventMetaData
-    {
+    /** Base interface for event data sent to event handlers */
+    interface EventCallbackMetaData {
+        /**@internal*/
+        _eventType?: string;
+        /**@internal*/
+        _callbackData?: any;
     }
 
-    interface ScriptEvent extends EventMetaData
-    {
-    }
+    interface NativeEvent extends EventMetaData { }
+
+    interface ScriptEvent extends EventMetaData { }
 
     // typed callback generic
     type EventCallback<T extends EventMetaData> = (data: T) => void;
+
+    /**
+     * Utility function to wrap up an event callback to pass to subscribeToEvent
+     * @param eventType The type of event to wrap
+     * @param callback A callback to call when the event is fired
+     */
+    export function ScriptEvent<T extends Atomic.EventMetaData>(eventType: string, callback: Atomic.EventCallback<T>): Atomic.EventMetaData;
+
+    /**
+     * Utility function to wrap up event data to pass to sendEvent
+     * @param eventType The type of event to wrap
+     * @param callbackData The data to pass to the event subscriber
+     */
+    export function ScriptEventData<T extends Atomic.EventData>(eventType: string, callbackData?: T): Atomic.EventCallbackMetaData;
 
     export interface PathInfo {
 

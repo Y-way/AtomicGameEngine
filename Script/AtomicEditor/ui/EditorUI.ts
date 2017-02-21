@@ -20,12 +20,11 @@
 // THE SOFTWARE.
 //
 
-import EditorEvents = require("editor/EditorEvents");
 import MainFrame = require("./frames/MainFrame");
 import ModalOps = require("./modal/ModalOps");
 import Shortcuts = require("./Shortcuts");
 import ServiceLocator from "../hostExtensions/ServiceLocator";
-import Editor = require("editor/Editor");
+import {default as AtomicEditor} from "editor/Editor";
 
 // this is designed with public get functions to solve
 // circular dependency issues in TS
@@ -48,11 +47,11 @@ export function getShortcuts():Shortcuts {
   return editorUI.shortcuts;
 }
 
-export function initialize(editor: Editor) {
+export function initialize(editor: AtomicEditor) {
   editorUI = new EditorUI(editor);
 }
 
-export function getEditor(): Editor {
+export function getEditor(): AtomicEditor {
     return editorUI.editor;
 }
 
@@ -69,13 +68,17 @@ export function showModalError(windowText:string, message:string) {
   editorUI.showModalError(windowText, message);
 }
 
+export function showEditorStatus(message:string) {
+    editorUI.showEditorStatus(message);
+}
+
 export function getCurrentResourceEditor():Editor.ResourceEditor {
     return getMainFrame().resourceframe.currentResourceEditor;
 }
 
 class EditorUI extends Atomic.ScriptObject {
 
-  constructor(editor: Editor) {
+  constructor(editor: AtomicEditor) {
 
     super();
 
@@ -89,11 +92,11 @@ class EditorUI extends Atomic.ScriptObject {
 
     this.editor = editor;
 
-    this.subscribeToEvent("ScreenMode", (ev:Atomic.ScreenModeEvent) => {
+    this.subscribeToEvent(Atomic.ScreenModeEvent((ev:Atomic.ScreenModeEvent) => {
 
       this.mainframe.setSize(ev.width, ev.height);
 
-    });
+    }));
 
     // set initial size
     this.mainframe.setSize(graphics.width, graphics.height);
@@ -107,13 +110,14 @@ class EditorUI extends Atomic.ScriptObject {
       this.modalOps);
     ServiceLocator.subscribeToEvents(this.mainframe);
 
-    this.subscribeToEvent(EditorEvents.ModalError, (event:EditorEvents.ModalErrorEvent) => {
-      this.showModalError(event.title, event.message);
-    });
-    
-    this.subscribeToEvent(EditorEvents.EditorModal, (event:EditorEvents.EditorModalEvent) => {
-      this.showModalError(event.title, event.message);
-    });
+    this.subscribeToEvent(Editor.EditorModalEvent((event:Editor.EditorModalEvent) => {
+        if (event.type == Editor.EDITOR_MODALERROR)
+            this.showModalError(event.title, event.message);
+        else if ( event.type == Editor.EDITOR_MODALINFO)
+            this.showEditorStatus(event.message);
+    }));
+
+    this.showEditorStatus("Ready.");
 
   }
 
@@ -121,10 +125,14 @@ class EditorUI extends Atomic.ScriptObject {
       this.modalOps.showError(windowText, message);
   }
 
+  showEditorStatus(message: string) {
+      this.mainframe.showStatusText(message);
+  }
+
   view: Atomic.UIView;
   mainframe: MainFrame;
   modalOps: ModalOps;
   shortcuts: Shortcuts;
-  editor: Editor;
+  editor: AtomicEditor;
 
 }

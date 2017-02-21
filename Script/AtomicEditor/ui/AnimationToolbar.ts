@@ -20,13 +20,15 @@
 // THE SOFTWARE.
 //
 
-import EditorEvents = require("editor/EditorEvents");
 import EditorUI = require("ui/EditorUI");
 import HierarchyFrame = require("ui/frames/HierarchyFrame");
 import InspectorUtils = require("ui/frames/inspector/InspectorUtils");
 import ResourceOps = require("resources/ResourceOps");
 
 class AnimationToolbar extends Atomic.UIWidget {
+
+    updateDelta: number = 0.0;
+    updateYaw: number = 0.0;
 
     constructor(parent: Atomic.UIWidget, properties: Atomic.UIWidget, asset: ToolCore.Asset) {
 
@@ -38,9 +40,9 @@ class AnimationToolbar extends Atomic.UIWidget {
         this.leftAnimContainer = <Atomic.UILayout>this.getWidget("leftanimcontainer");
         this.rightAnimContainer = <Atomic.UILayout>this.getWidget("rightanimcontainer");
 
-        this.subscribeToEvent(this, "WidgetEvent", (ev) => this.handleWidgetEvent(ev));
-        this.subscribeToEvent(EditorEvents.ActiveSceneEditorChange, (data) => this.handleActiveSceneEditorChanged(data));
-        this.subscribeToEvent(EditorEvents.SceneClosed, (data) => this.handleSceneClosed(data));
+        this.subscribeToEvent(this, Atomic.UIWidgetEvent((ev) => this.handleWidgetEvent(ev)));
+        this.subscribeToEvent(Editor.EditorActiveSceneEditorChangeEvent((data) => this.handleActiveSceneEditorChanged(data)));
+        this.subscribeToEvent(Editor.EditorSceneClosedEvent((data) => this.handleSceneClosed(data)));
 
         var leftAnimationField = InspectorUtils.createAttrEditFieldWithSelectButton("Animation A", this.leftAnimContainer);
         leftAnimationField.selectButton.onClick = function () { this.openAnimationSelectionBox(leftAnimationField.editField, this.leftAnim); }.bind(this);
@@ -68,14 +70,47 @@ class AnimationToolbar extends Atomic.UIWidget {
         this.blendSpeed = InspectorUtils.createAttrEditField("Blend Speed:", this.animationPropertiesContainer);
         this.blendSpeed.setAdaptToContentSize(true);
 
+        var attrLayout = new Atomic.UILayout();
+        attrLayout.layoutSize = Atomic.UI_LAYOUT_SIZE.UI_LAYOUT_SIZE_AVAILABLE;
+        attrLayout.gravity = Atomic.UI_GRAVITY.UI_GRAVITY_LEFT_RIGHT;
+        attrLayout.layoutDistribution = Atomic.UI_LAYOUT_DISTRIBUTION.UI_LAYOUT_DISTRIBUTION_GRAVITY;
+        var nameField = new Atomic.UITextField();
+        nameField.textAlign = Atomic.UI_TEXT_ALIGN.UI_TEXT_ALIGN_RIGHT;
+        nameField.skinBg = "InspectorTextAttrName";
+        nameField.text = "Spin Speed:";
+        attrLayout.addChild(nameField);
+        this.rotateModel = new Atomic.UISlider();
+        this.rotateModel.setLimits(0, 10);
+        this.rotateModel.setValue(0);
+        attrLayout.addChild(this.rotateModel);
+        this.animationPropertiesContainer.addChild( attrLayout );
+
         //Set default values
         this.animationSpeed.setText("1");
         this.blendSpeed.setText("0");
 
         properties.addChild(this.animationPropertiesContainer);
 
+        this.subscribeToEvent(Atomic.UpdateEvent((ev) => this.handleUpdate(ev))); // if we want the model to rotate
+
     }
 
+    handleUpdate(ev) {
+    
+        var rotspeed = this.rotateModel.value;
+        if (rotspeed > 0) {                  // only do work if the spinning is turned on
+            this.updateDelta += ev.timeStep; // add some time to the clock
+            if (this.updateDelta > (0.134 * (10-rotspeed))) {  //see if we have reached our limit
+                this.updateDelta = 0.0;      // reset the limit
+                this.updateYaw += 2.1;       // increase the yaw
+                if (this.updateYaw > 26.3)   // clamp the yaw
+                    this.updateYaw = 0;
+                this.modelNode.yaw(this.updateYaw); // and rotate the model.
+            }
+
+        }
+    }
+    
     handleWidgetEvent(ev: Atomic.UIWidgetEvent): boolean {
 
         if (ev.type == Atomic.UI_EVENT_TYPE.UI_EVENT_TYPE_CLICK) {
@@ -122,7 +157,7 @@ class AnimationToolbar extends Atomic.UIWidget {
         return true;
     }
 
-    handleSceneClosed(ev: EditorEvents.SceneClosedEvent) {
+    handleSceneClosed(ev: Editor.EditorSceneClosedEvent) {
         if (ev.scene == this.scene) {
             Atomic.fileSystem.delete(this.sceneAssetPath);
 
@@ -141,7 +176,7 @@ class AnimationToolbar extends Atomic.UIWidget {
             this.remove();
     }
 
-    handleActiveSceneEditorChanged(event: EditorEvents.ActiveSceneEditorChangeEvent) {
+    handleActiveSceneEditorChanged(event: Editor.EditorActiveSceneEditorChangeEvent) {
 
         if (!event.sceneEditor)
             return;
@@ -170,12 +205,14 @@ class AnimationToolbar extends Atomic.UIWidget {
 
         this.animatedModel = <Atomic.AnimatedModel>modelNode.getComponent("AnimatedModel");
         this.animationController = <Atomic.AnimationController>modelNode.getComponent("AnimationController");
-        var model = this.animatedModel.model;
-        this.animatedModel.setBoneCreationOverride(true);
-        this.animatedModel.setModel(model, true);
+        if ( this.animatedModel != null && this.animationController != null ) {
+            var model = this.animatedModel.model;
+            this.animatedModel.setBoneCreationOverride(true);
+            this.animatedModel.setModel(model, true);
 
-        var animComp = new Atomic.AnimatedModel();
-        var animContComp = new Atomic.AnimationController();
+            var animComp = new Atomic.AnimatedModel();
+            var animContComp = new Atomic.AnimationController();
+        }
     }
 
     openAnimationSelectionBox(animationWidget: Atomic.UIEditField, animationSlot: Atomic.Animation) {
@@ -215,6 +252,7 @@ class AnimationToolbar extends Atomic.UIWidget {
     animationPropertiesContainer: Atomic.UILayout;
     animationSpeed: Atomic.UIEditField;
     blendSpeed: Atomic.UIEditField;
+    rotateModel: Atomic.UISlider;
 }
 
 export = AnimationToolbar;

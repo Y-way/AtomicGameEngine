@@ -32,6 +32,28 @@ import ClientExtensionEventNames from "../clientExtensions/ClientExtensionEventN
  */
 export function configure(fileExt: string, filename: string) {
 
+    let monacoEditor = <monaco.editor.IStandaloneCodeEditor>internalEditor.getInternalEditor();
+
+    updateEditorPrefs();
+
+    // give the language extensions the opportunity to configure the editor based upon the file type
+    serviceLocator.sendEvent(ClientExtensionEventNames.ConfigureEditorEvent, {
+        fileExt: fileExt,
+        filename: filename,
+        editor: monacoEditor
+    });
+
+    // Override CMD/CTRL+I since that is going to be used for Format Code and in the editor it is assigned to something else
+    const noOpCommand: monaco.editor.ICommandHandler = () => { };
+    monacoEditor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_I, noOpCommand, null);
+
+    updateEditorPrefs();
+}
+
+/**
+ * Update the editor prefs
+ */
+export function updateEditorPrefs() {
     // converter to handle new version of the renderWhitespace setting
     const renderWhitespaceAdapter = (setting): "none" | "boundary" | "all" => {
         switch (setting.toLowerCase()) {
@@ -49,18 +71,6 @@ export function configure(fileExt: string, filename: string) {
         fontSize: serviceLocator.clientServices.getApplicationPreference("codeEditor", "fontSize", 12),
         fontFamily: serviceLocator.clientServices.getApplicationPreference("codeEditor", "fontFamily", "")
     });
-
-    // give the language extensions the opportunity to configure the editor based upon the file type
-    serviceLocator.sendEvent(ClientExtensionEventNames.ConfigureEditorEvent, {
-        fileExt: fileExt,
-        filename: filename,
-        editor: monacoEditor
-    });
-
-    // Override CMD/CTRL+I since that is going to be used for Format Code and in the editor it is assigned to something else
-    const noOpCommand: monaco.editor.ICommandHandler = () => { };
-    monacoEditor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_I, noOpCommand, null);
-
 }
 
 /**
@@ -106,7 +116,7 @@ export function loadCodeIntoEditor(code: string, filename: string, fileExt: stri
  * @param  {string} newPath
  */
 export function resourceRenamed(path: string, newPath: string) {
-    let data: Editor.EditorEvents.RenameResourceEvent = {
+    let data: Editor.ClientExtensions.RenameResourceEvent = {
         path: path,
         newPath: newPath
     };
@@ -118,7 +128,7 @@ export function resourceRenamed(path: string, newPath: string) {
  * @param  {string} path
  */
 export function resourceDeleted(path: string) {
-    let data: Editor.EditorEvents.DeleteResourceEvent = {
+    let data: Editor.ClientExtensions.DeleteResourceEvent = {
         path: path
     };
     serviceLocator.sendEvent(ClientExtensionEventNames.ResourceDeletedEvent, data);
@@ -131,7 +141,7 @@ export function resourceDeleted(path: string) {
  * @param {string} contents
  */
 export function codeSaved(path: string, fileExt: string, contents: string) {
-    let data: Editor.EditorEvents.CodeSavedEvent = {
+    let data: Editor.ClientExtensions.CodeSavedEvent = {
         filename: path,
         fileExt: fileExt,
         editor: internalEditor.getInternalEditor(),
@@ -153,6 +163,8 @@ export function editorLoaded() {
  */
 export function preferencesChanged(prefs: Editor.ClientExtensions.PreferencesChangedEventData) {
     serviceLocator.clientServices.setPreferences(prefs.projectPreferences, prefs.applicationPreferences);
+    updateEditorPrefs();
+
     serviceLocator.sendEvent(ClientExtensionEventNames.PreferencesChangedEvent, prefs);
 }
 
@@ -187,4 +199,23 @@ export function invokeShortcut(shortcut: Editor.EditorShortcutType) {
             ed.setSelection(ed.getModel().getFullModelRange());
             break;
     }
+}
+
+/**
+ * Selects the provided line number
+ */
+export function gotoLineNumber(lineNumber:number) {
+    const ed = internalEditor.getInternalEditor();
+    ed.revealLineInCenterIfOutsideViewport(lineNumber);
+    ed.setPosition(new monaco.Position(lineNumber, 0));
+}
+
+/**
+ * Selects the provided position
+ */
+export function gotoTokenPos(tokenPos:number) {
+    const ed = internalEditor.getInternalEditor();
+    const pos = ed.getModel().getPositionAt(tokenPos);
+    ed.revealPositionInCenterIfOutsideViewport(pos);
+    ed.setPosition(pos);
 }

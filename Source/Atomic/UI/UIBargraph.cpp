@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2014-2016 THUNDERBEAST GAMES LLC
+// Copyright (c) 2014-2017, THUNDERBEAST GAMES LLC All rights reserved
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,20 +20,39 @@
 // THE SOFTWARE.
 //
 
-/// <reference path="../TypeScript/Atomic.d.ts" />
-/// <reference path="../TypeScript/ToolCore.d.ts" />
-/// <reference path="../TypeScript/Editor.d.ts" />
-/// <reference path="../TypeScript/AtomicWork.d.ts" />
+#include <TurboBadger/tb_widgets.h>
+#include <TurboBadger/tb_widgets_common.h>
+#include <TurboBadger/tb_atomic_widgets.h>
 
-import Editor from "editor/Editor";
+#include <Atomic/IO/Log.h>
+#include <Atomic/IO/FileSystem.h>
 
-class Main {
+#include "UIEvents.h"
+#include "UI.h"
+#include "UIBargraph.h"
 
-    static Editor:Editor;
+using namespace tb;
 
-    static main() {
-        Main.Editor = new Editor();
+namespace Atomic
+{
+
+UIBargraph::UIBargraph(Context* context, bool createWidget) : UIWidget(context, false)
+{
+    if (createWidget)
+    {
+        widget_ = new TBBarGraph();
+        widget_->SetDelegate(this);
+        GetSubsystem<UI>()->WrapWidget(this, widget_);
     }
 }
 
-Main.main();
+UIBargraph::~UIBargraph()
+{
+}
+
+bool UIBargraph::OnEvent(const tb::TBWidgetEvent &ev)
+{
+    return UIWidget::OnEvent(ev);
+}
+
+}
