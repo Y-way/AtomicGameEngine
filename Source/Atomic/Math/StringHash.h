@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2016 the Urho3D project.
+// Copyright (c) 2008-2017 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -109,13 +109,13 @@ public:
     // ATOMIC BEGIN
 
     /// Register significant C string, which can be looked up via hash, note that the lookup is case insensitive
-    static void RegisterSignificantString(const char* str);
+    static StringHash RegisterSignificantString(const char* str);
 
     /// Register significant string, which can be looked up via hash, note that the lookup is case insensitive
-    static void RegisterSignificantString(const String& str);
+    static StringHash RegisterSignificantString(const String& str);
 
     /// Get a significant string from a case insensitive hash value
-    static bool GetSignificantString(unsigned hash, String& strOut);
+    static bool GetSignificantString(StringHash hash, String& strOut);
 
     // ATOMIC END
 

@@ -34,7 +34,43 @@
 
 namespace ToolCore
 {
+
 bool CSFunctionWriter::wroteConstructor_ = false;
+
+static bool _CheckNumber(const String& value)
+{
+    // check number initializer
+    unsigned i;
+    bool sawDot = false;
+    for (i = 0; i < value.Length(); i++)
+    {
+        char c = value[i];
+
+        if (c == '-' && i)
+        {
+            break;
+        }
+        else if (c == 'f')
+        {
+            if (i != value.Length() - 1)
+                break;
+        }
+        else if (c == '.')
+        {
+            if (sawDot)
+                break;
+
+            sawDot = true;
+        }
+        else if (!isdigit(c))
+        {
+            break;
+        }
+    }
+
+    return i == value.Length();
+
+}
 
 CSFunctionWriter::CSFunctionWriter(JSBFunction *function) : JSBFunctionWriter(function)
 {
@@ -572,6 +608,26 @@ void CSFunctionWriter::GenManagedFunctionParameters(String& sig)
             }
 
             String managedTypeString = CSTypeHelper::GetManagedTypeString(ptype);
+            String init = ptype->initializer_;
+            String cast;
+            String postFix;
+
+            if (init.Length())
+            {
+                // check any required casts
+                String type = CSTypeHelper::GetManagedTypeString(ptype->type_);
+
+                if (type == "byte" && (function_->class_->GetPackage()->ContainsConstant(init)))
+                {
+                    cast = "byte";
+                }
+                
+                // instead of casting make sure to qualify initializers as float, C# requires a cast/or this
+                if (type == "float" && _CheckNumber(init) && !init.EndsWith("f"))
+                {
+                    postFix = "f";
+                }
+            }
 
             if (!ptype->isConst_ && (ptype->isReference_ && isStruct))
             {
@@ -581,13 +637,18 @@ void CSFunctionWriter::GenManagedFunctionParameters(String& sig)
 
             sig += managedTypeString;
 
-            String init = ptype->initializer_;
-
             if (init.Length())
-            {
+            {                
                 init = MapDefaultParameter(ptype);
                 if (init.Length())
-                    sig += " = " + init;
+                {                    
+                    if (cast.Length())
+                        sig.AppendWithFormat(" = (%s) %s", cast.CString(), init.CString());
+                    else
+                        sig += " = " + init;
+                }
+
+                sig += postFix;
 
             }
 
@@ -816,7 +877,18 @@ void CSFunctionWriter::WriteManagedFunction(String& source)
         }
         else if (function_->GetReturnType()->type_->asVectorType())
         {
-            source += IndentLine(ToString("var returnScriptVector = %s%s%uReturnValue.GetScriptVector();\n", klass->GetName().CString(), function_->GetName().CString(), function_->GetID()));
+            JSBVectorType* vtype = function_->GetReturnType()->type_->asVectorType();
+            
+            String marshalName = ToString("%s%s%uReturnValue", function_->GetClass()->GetName().CString(), function_->GetName().CString(), function_->GetID());
+            
+            // Defer creation of ScriptVector return value until method is called
+            if (vtype->vectorType_->asClassType())
+            {
+                String classname = vtype->vectorType_->asClassType()->class_->GetName();
+                source += IndentLine(ToString("if (%s == null) %s = new Vector<%s>();\n", marshalName.CString(), marshalName.CString(), classname.CString()));
+            }
+
+            source += IndentLine(ToString("var returnScriptVector = %s.GetScriptVector();\n", marshalName.CString()));
         }
         else if (CSTypeHelper::IsSimpleReturn(function_->GetReturnType()))
             line += "return ";
@@ -944,7 +1016,7 @@ void CSFunctionWriter::GenerateManagedSource(String& sourceOut)
 
                     marshal += managedType + " ";
 
-                    marshal += ToString("%s%s%uReturnValue = new %s();\n", klass->GetName().CString(), function_->GetName().CString(), function_->GetID(), managedType.CString());
+                    marshal += ToString("%s%s%uReturnValue;\n", klass->GetName().CString(), function_->GetName().CString(), function_->GetID());
 
                     sourceOut += IndentLine(marshal);
                 }
@@ -961,7 +1033,7 @@ void CSFunctionWriter::GenerateManagedSource(String& sourceOut)
 
                 String marshal = "private " + typestring + " ";
 
-                marshal += ToString("%s%s%uReturnValue = new %s();\n", function_->GetClass()->GetName().CString(), function_->GetName().CString(), function_->GetID(), typestring.CString());
+                marshal += ToString("%s%s%uReturnValue = null;\n", function_->GetClass()->GetName().CString(), function_->GetName().CString(), function_->GetID());
 
                 sourceOut += IndentLine(marshal);
 
@@ -1007,22 +1079,7 @@ String CSFunctionWriter::MapDefaultParameter(JSBFunctionType* parameter)
     if (init == "true" || init == "false")
         return init;
 
-    if (init == "0.0f")
-        return init;
-
-    if (init == "1.0f")
-        return init;
-
-    if (init == "0.1f")
-        return init;
-
-    if (init == "0")
-        return init;
-
-    if (init == "3")
-        return init;
-
-    if (init == "-1")
+    if (_CheckNumber(init))
         return init;
 
     if (init == "\"\\t\"")

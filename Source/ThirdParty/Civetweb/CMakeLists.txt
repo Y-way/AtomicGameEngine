@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2008-2016 the Urho3D project.
+# Copyright (c) 2008-2017 the Urho3D project.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -34,6 +34,12 @@ if (WIN32)
             add_definitions (-D_TIMESPEC_DEFINED)
         endif ()
     endif ()
+elseif (APPLE)
+    if (CMAKE_OSX_DEPLOYMENT_TARGET VERSION_LESS 10.12 AND IPHONEOS_DEPLOYMENT_TARGET VERSION_LESS 10.0 AND APPLETVOS_DEPLOYMENT_TARGET VERSION_LESS 10.0)
+        add_definitions (-D_DARWIN_FEATURE_CLOCK_GETTIME=0)
+    else ()
+        add_definitions (-DHAVE_CLOCK_GETTIME)
+    endif ()
 endif ()
 
 # Define source files
@@ -44,6 +50,3 @@ set (INCLUDE_DIRS include)
 
 # Setup target
 setup_library ()
-
-# Install headers for building the Urho3D library
-install_header_files (DIRECTORY include/ DESTINATION ${DEST_INCLUDE_DIR}/ThirdParty/Civetweb FILES_MATCHING PATTERN *.h BUILD_TREE_ONLY)  # Note: the trailing slash is significant

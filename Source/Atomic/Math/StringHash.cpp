@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2016 the Urho3D project.
+// Copyright (c) 2008-2017 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -78,25 +78,27 @@ String StringHash::ToString() const
 // ATOMIC BEGIN
 
 // Lookup for significant strings, not a member of StringHash so don't need to drag hashmap into header
-static HashMap<unsigned, String> gSignificantLookup;
+static HashMap<StringHash, String> gSignificantLookup;
 
-void StringHash::RegisterSignificantString(const char* str)
+StringHash StringHash::RegisterSignificantString(const char* str)
 {
-    unsigned hash = Calculate(str);
+    StringHash hash(str);
 
     if (gSignificantLookup.Contains(hash))
-        return;
+        return StringHash(hash);
 
     gSignificantLookup[hash] = String(str);
 
+    return hash;
+
 }
 
-void StringHash::RegisterSignificantString(const String& str)
+StringHash StringHash::RegisterSignificantString(const String& str)
 {
-    RegisterSignificantString(str.CString());
+    return RegisterSignificantString(str.CString());
 }
 
-bool StringHash::GetSignificantString(unsigned hash, String& strOut)
+bool StringHash::GetSignificantString(StringHash hash, String& strOut)
 {
     if (!gSignificantLookup.TryGetValue(hash, strOut))
     {

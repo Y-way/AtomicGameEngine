@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2016 the Urho3D project.
+// Copyright (c) 2008-2017 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -33,6 +33,10 @@ namespace Atomic
 
 class XMLElement;
 class XMLFile;
+
+// ATOMIC BEGIN
+class ScriptRenderPathCommand;
+// ATOMIC END
 
 /// Rendering path command types.
 enum RenderCommandType
@@ -69,6 +73,8 @@ struct ATOMIC_API RenderTargetInfo
     RenderTargetInfo() :
         size_(Vector2::ZERO),
         sizeMode_(SIZE_ABSOLUTE),
+        multiSample_(1),
+        autoResolve_(true),
         enabled_(true),
         cubemap_(false),
         filtered_(false),
@@ -90,6 +96,10 @@ struct ATOMIC_API RenderTargetInfo
     Vector2 size_;
     /// Size mode.
     RenderTargetSizeMode sizeMode_;
+    /// Multisampling level (1 = no multisampling).
+    int multiSample_;
+    /// Multisampling autoresolve flag.
+    bool autoResolve_;
     /// Enabled flag.
     bool enabled_;
     /// Cube map flag.
@@ -264,6 +274,13 @@ public:
     Vector<RenderTargetInfo> renderTargets_;
     /// Rendering commands.
     Vector<RenderPathCommand> commands_;
+
+    // ATOMIC BEGIN
+    /// Gets the render command at specified index, note SetCommand must be called to update the RenderPath with any changes
+    bool GetCommand(unsigned index, ScriptRenderPathCommand* dst);
+    /// Sets the render command at specified index
+    bool SetCommand(unsigned index, ScriptRenderPathCommand* src);
+    // ATOMIC END
 };
 
 }

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2008-2016 the Urho3D project.
+# Copyright (c) 2008-2017 the Urho3D project.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -36,6 +36,7 @@ set (SOURCE_FILES
     src/base/ftbase.c
     src/base/ftbbox.c
     src/base/ftbitmap.c
+    src/base/ftfntfmt.c
     src/base/ftfstype.c
     src/base/ftgasp.c
     src/base/ftglyph.c
@@ -78,7 +79,3 @@ set (INCLUDE_DIRS include)
 
 # Setup target
 setup_library ()
-
-# Install headers for building the Urho3D library
-install_header_files (DIRECTORY include/freetype DESTINATION ${DEST_INCLUDE_DIR}/ThirdParty FILES_MATCHING PATTERN *.h BUILD_TREE_ONLY)
-install_header_files (FILES include/ft2build.h DESTINATION ${DEST_INCLUDE_DIR}/ThirdParty FILES_MATCHING PATTERN *.h BUILD_TREE_ONLY)

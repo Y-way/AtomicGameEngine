@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2016 the Urho3D project.
+// Copyright (c) 2008-2017 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -172,7 +172,7 @@ void Log::Write(int level, const String& message)
 
 #if defined(__ANDROID__)
     int androidLevel = ANDROID_LOG_DEBUG + level;
-    __android_log_print(androidLevel, "Urho3D", "%s", message.CString());
+    __android_log_print(androidLevel, "Atomic", "%s", message.CString());
 #elif defined(IOS)
     SDL_IOS_LogMessage(message.CString());
 #else
@@ -228,10 +228,10 @@ void Log::WriteRaw(const String& message, bool error)
     if (logInstance->quiet_)
     {
         if (error)
-            __android_log_print(ANDROID_LOG_ERROR, "Urho3D", message.CString());
+            __android_log_print(ANDROID_LOG_ERROR, "Atomic", "%s", message.CString());
     }
     else
-        __android_log_print(error ? ANDROID_LOG_ERROR : ANDROID_LOG_INFO, "Urho3D", message.CString());
+        __android_log_print(error ? ANDROID_LOG_ERROR : ANDROID_LOG_INFO, "Atomic", "%s", message.CString());
 #elif defined(IOS)
     SDL_IOS_LogMessage(message.CString());
 #else

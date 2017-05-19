@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2016 the Urho3D project.
+// Copyright (c) 2008-2017 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -27,6 +27,10 @@
 #include "../Graphics/RenderPath.h"
 #include "../IO/Log.h"
 #include "../Resource/XMLFile.h"
+
+// ATOMIC BEGIN
+#include "../Script/ScriptRenderPathCommand.h"
+// ATOMIC END
 
 #include "../DebugNew.h"
 
@@ -106,6 +110,11 @@ void RenderTargetInfo::Load(const XMLElement& element)
         size_.x_ = element.GetFloat("width");
     if (element.HasAttribute("height"))
         size_.y_ = element.GetFloat("height");
+
+    if (element.HasAttribute("multisample"))
+        multiSample_ = Clamp(element.GetInt("multisample"), 1, 16);
+    if (element.HasAttribute("autoresolve"))
+        autoResolve_ = element.GetBool("autoresolve");
 }
 
 void RenderPathCommand::Load(const XMLElement& element)
@@ -160,24 +169,11 @@ void RenderPathCommand::Load(const XMLElement& element)
     case CMD_QUAD:
         vertexShaderName_ = element.GetAttribute("vs");
         pixelShaderName_ = element.GetAttribute("ps");
-        vertexShaderDefines_ = element.GetAttribute("vsdefines");
-        pixelShaderDefines_ = element.GetAttribute("psdefines");
 
-        if (type_ == CMD_QUAD)
+        if (type_ == CMD_QUAD && element.HasAttribute("blend"))
         {
-            if (element.HasAttribute("blend"))
-            {
-                String blend = element.GetAttributeLower("blend");
-                blendMode_ = ((BlendMode)GetStringListIndex(blend.CString(), blendModeNames, BLEND_REPLACE));
-            }
-
-            XMLElement parameterElem = element.GetChild("parameter");
-            while (parameterElem)
-            {
-                String name = parameterElem.GetAttribute("name");
-                shaderParameters_[name] = Material::ParseShaderParameterValue(parameterElem.GetAttribute("value"));
-                parameterElem = parameterElem.GetNext("parameter");
-            }
+            String blend = element.GetAttributeLower("blend");
+            blendMode_ = ((BlendMode)GetStringListIndex(blend.CString(), blendModeNames, BLEND_REPLACE));
         }
         break;
 
@@ -213,6 +209,18 @@ void RenderPathCommand::Load(const XMLElement& element)
         outputElem = outputElem.GetNext("output");
     }
 
+    // Shader compile flags & parameters
+    vertexShaderDefines_ = element.GetAttribute("vsdefines");
+    pixelShaderDefines_ = element.GetAttribute("psdefines");
+    XMLElement parameterElem = element.GetChild("parameter");
+    while (parameterElem)
+    {
+        String name = parameterElem.GetAttribute("name");
+        shaderParameters_[name] = Material::ParseShaderParameterValue(parameterElem.GetAttribute("value"));
+        parameterElem = parameterElem.GetNext("parameter");
+    }
+
+    // Texture bindings
     XMLElement textureElem = element.GetChild("texture");
     while (textureElem)
     {
@@ -486,5 +494,29 @@ const Variant& RenderPath::GetShaderParameter(const String& name) const
 
     return Variant::EMPTY;
 }
+
+// ATOMIC BEGIN
+
+bool RenderPath::GetCommand(unsigned index, ScriptRenderPathCommand* dst)
+{
+    if (!dst || index >= commands_.Size())
+        return false;    
+
+    dst->renderPathCommand_ = commands_[index];
+
+    return true;
+}
+/// Sets the render command at specified index
+bool RenderPath::SetCommand(unsigned index, ScriptRenderPathCommand* src)
+{
+    if (!src || index >= commands_.Size())
+        return false;
+
+    SetCommand(index, src->renderPathCommand_);
+
+    return true;
+}
+
+// ATOMIC END
 
 }

@@ -24,6 +24,7 @@
 #include <Atomic/Core/StringUtils.h>
 #include <Atomic/IO/Log.h>
 #include <Atomic/IO/File.h>
+#include <Atomic/IO/FileSystem.h>
 
 #include "../ToolSystem.h"
 #include "../ToolEnvironment.h"
@@ -45,7 +46,7 @@ BindCmd::~BindCmd()
 
 }
 
-bool BindCmd::Parse(const Vector<String>& arguments, unsigned startIndex, String& errorMsg)
+bool BindCmd::ParseInternal(const Vector<String>& arguments, unsigned startIndex, String& errorMsg)
 {
     String argument = arguments[startIndex].ToLower();
     sourceRootFolder_ = startIndex + 1 < arguments.Size() ? arguments[startIndex + 1] : String::EMPTY;
@@ -69,6 +70,9 @@ bool BindCmd::Parse(const Vector<String>& arguments, unsigned startIndex, String
         errorMsg = "Unable to parse bind command";
         return false;
     }
+
+    sourceRootFolder_ = AddTrailingSlash(sourceRootFolder_);
+    packageFolder_ = AddTrailingSlash(packageFolder_);
 
     return true;
 }
