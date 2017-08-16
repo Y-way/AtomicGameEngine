@@ -33,7 +33,7 @@ namespace tb
 namespace Atomic
 {
 
-class UISelectList : public UIWidget
+class ATOMIC_API UISelectList : public UIWidget
 {
     ATOMIC_OBJECT(UISelectList, UIWidget)
 
@@ -69,6 +69,19 @@ public:
     void SelectPreviousItem();
 
     void SetUIListView(bool value);
+
+    /// Returns the string of item at the requested index
+    String GetItemString(int index);
+    /// Returns the string of the selected item
+    String GetSelectedItemString();
+    /// Add a new item at the given index
+    bool AddItem(int index, const String& str, const String& id = String::EMPTY );
+    /// Delete the item at the given index.
+    void DeleteItem(int index);
+    /// Delete all items.
+    void DeleteAllItems();
+    /// Searches the items for the id as a number, returns index, -1 if not found 
+    int FindId ( int idnum );
 
 protected:
 

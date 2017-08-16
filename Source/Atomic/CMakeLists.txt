@@ -20,7 +20,7 @@ file (GLOB SYSTEM_UI_SOURCE UI/SystemUI/*.cpp UI/SystemUI/*.h)
 file (GLOB PHYSICS_SOURCE Physics/*.cpp Physics/*.h)
 file (GLOB NAVIGATION_SOURCE Navigation/*.cpp Navigation/*.h)
 file (GLOB ENVIRONMENT_SOURCE Environment/*.cpp Environment/*.h)
-file (GLOB GRAPHICS_SOURCE Graphics/*.cpp Graphics/*.h)
+file (GLOB GRAPHICS_SOURCE Graphics/*.cpp Graphics/*.h Graphics/Text3D/*.cpp Graphics/Text3D/*.h)
 if (ATOMIC_IK)
     file (GLOB IK_SOURCE IK/*.cpp IK/*.h)
 endif ()
@@ -32,12 +32,12 @@ elseif (ATOMIC_DATABASE_ODBC)
 endif ()
 
 if (WIN32)
-    if (ATOMIC_D3D11) # DirectX 11
-        file (GLOB GRAPHICS_IMPL_SOURCE Graphics/Direct3D11/*.cpp Graphics/Direct3D11/*.h)
+    if (ATOMIC_D3D9) # DirectX 9
+        file (GLOB GRAPHICS_IMPL_SOURCE Graphics/Direct3D9/*.cpp Graphics/Direct3D9/*.h)
     elseif (ATOMIC_OPENGL) # OpenGL
         file (GLOB GRAPHICS_IMPL_SOURCE Graphics/OpenGL/*.cpp Graphics/OpenGL/*.h)
-    else() # DirectX 9
-        file (GLOB GRAPHICS_IMPL_SOURCE Graphics/Direct3D9/*.cpp Graphics/Direct3D9/*.h)
+    elseif(ATOMIC_D3D11) # DirectX 11
+        file (GLOB GRAPHICS_IMPL_SOURCE Graphics/Direct3D11/*.cpp Graphics/Direct3D11/*.h)
     endif()
 else()
     file (GLOB GRAPHICS_IMPL_SOURCE Graphics/OpenGL/*.cpp Graphics/OpenGL/*.h)
@@ -92,11 +92,21 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/BuildInfo/AtomicGitSHA.cpp.in" "${CM
 
 set (SOURCE_FILES ${SOURCE_FILES} BuildInfo/AtomicBuildInfo.cpp BuildInfo/AtomicBuildInfo.h BuildInfo/AtomicGitSHA.cpp BuildInfo/AtomicGitSHA.h)
 
-add_library(Atomic ${SOURCE_FILES})
+if (ATOMIC_DYNAMIC_RUNTIME)
+    set(ATOMIC_LIBRARY_TYPE SHARED)
+else ()
+    set(ATOMIC_LIBRARY_TYPE STATIC)
+endif ()
+add_library(Atomic ${ATOMIC_LIBRARY_TYPE} ${SOURCE_FILES})
+if (NOT ATOMIC_DYNAMIC_RUNTIME)
+    target_compile_definitions (Atomic PUBLIC -DATOMIC_STATIC_DEFINE=1 -DATOMIC_API=)
+else ()
+    target_compile_definitions (Atomic PRIVATE -DATOMIC_EXPORTS=1)
+endif ()
 
 include_directories (${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories(Atomic PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../)
-target_link_libraries (Atomic Box2D Duktape TurboBadger FreeType JO LZ4 PugiXml STB SDL ASIO rapidjson WebSocketPP)
+target_link_libraries (Atomic Box2D Duktape TurboBadger FreeType JO LZ4 PugiXml STB SDL ASIO rapidjson WebSocketPP imgui)
 target_compile_definitions (Atomic PUBLIC -DATOMIC_CXX11=1)
 if (ATOMIC_64BIT)
     target_compile_definitions (Atomic PUBLIC -DATOMIC_64BIT=1)
@@ -115,24 +125,20 @@ elseif (LINUX)
     target_link_libraries (Atomic pthread GLEW GL dl)
     target_compile_definitions(Atomic PUBLIC -DATOMIC_PLATFORM_LINUX=1)
 elseif (WIN32)
-    option (ATOMIC_D3D11 "Use DirectX 11" ON)
-    option (ATOMIC_OPENGL "Use OpenGL" OFF)
     target_compile_definitions (Atomic PUBLIC -DATOMIC_PLATFORM_WINDOWS=1)
     target_link_libraries (Atomic user32 gdi32 winmm imm32 ole32 oleaut32 version uuid Ws2_32)
-    if (ATOMIC_D3D11) # DirectX 11
-        target_compile_definitions (Atomic PUBLIC -DATOMIC_D3D11=1)
-        target_link_libraries (Atomic d3d11 d3dcompiler dxguid)
+    if (ATOMIC_D3D9) # DirectX 9
+        target_link_libraries (Atomic d3d9 d3dcompiler)
+        target_compile_definitions (Atomic PUBLIC -DATOMIC_D3D9=1)
     elseif(ATOMIC_OPENGL) # OpenGL
         find_package(OpenGL REQUIRED)
         include_directories (${OpenGL_INCLUDE_DIRS})
         link_directories (${OpenGL_LIBRARY_DIRS})
         target_compile_definitions (Atomic PRIVATE ${OpenGL_DEFINITIONS})
-        target_compile_definitions (Atomic PUBLIC -DGLEW_STATIC=1)
         target_link_libraries (Atomic GLEW opengl32 glu32)
-    else() # DirectX 9
-        target_link_libraries (Atomic d3d9 d3dcompiler)
-        target_compile_definitions (Atomic PUBLIC -DATOMIC_D3D9=1)
-        set (ATOMIC_D3D9 1)
+    elseif(ATOMIC_D3D11) # DirectX 11
+        target_compile_definitions (Atomic PUBLIC -DATOMIC_D3D11=1)
+        target_link_libraries (Atomic d3d11 d3dcompiler dxguid)
     endif()
     target_link_libraries(Atomic MojoShader user32 gdi32 winmm imm32 ole32 oleaut32 version uuid Ws2_32)
 
@@ -167,9 +173,9 @@ if (NOT WEB)
     target_link_libraries (Atomic libcurl Civetweb kNet)
 endif()
 
-option (ATOMIC_PROFILING "Enable profiler" ON)
 if (ATOMIC_PROFILING)
     target_compile_definitions (Atomic PUBLIC -DATOMIC_PROFILING=1)
+    target_link_libraries (Atomic easy_profiler)
 endif ()
 
 option (ATOMIC_LOGGING "Enable logging" ON)
@@ -202,7 +208,6 @@ else ()
 endif ()
 
 # TODO: enable shared library builds.
-target_compile_definitions (Atomic PUBLIC -DATOMIC_STATIC_DEFINE=1 -DATOMIC_API=)
 if (NOT APPLE OR IOS OR WEB)
     target_compile_definitions (Atomic PUBLIC -DATOMIC_TBUI=1)
 endif ()
@@ -226,3 +231,15 @@ target_include_directories (Atomic PUBLIC
 )
 
 include(AtomicDoc)
+
+if ($ENV{ATOMIC_BUILD_DIST})
+    target_compile_definitions(Atomic PUBLIC -DATOMIC_BUILD_DIST=1)
+endif ()
+
+if (MSVC)
+    target_compile_options(Atomic PUBLIC $<$<CONFIG:Debug>:${ATOMIC_MSVC_RUNTIME}d> $<$<NOT:$<CONFIG:Debug>>:${ATOMIC_MSVC_RUNTIME}>)
+endif ()
+
+if (UNIX OR MINGW)
+    target_compile_options(Atomic PUBLIC -std=gnu++11)
+endif ()

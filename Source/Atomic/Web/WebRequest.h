@@ -26,6 +26,7 @@
 #include "../Core/Object.h"
 #include "../Container/Str.h"
 #include "../Container/ArrayPtr.h"
+#include "../IO/BufferQueue.h"
 
 namespace asio
 {
@@ -45,16 +46,16 @@ namespace Atomic
 /// HTTP connection state
 enum WebRequestState
 {
-    HTTP_INITIALIZING = 0,
-    HTTP_ERROR,
-    HTTP_OPEN,
-    HTTP_CLOSED
+    WR_INITIALIZING = 0,
+    WR_ERROR,
+    WR_OPEN,
+    WR_CLOSED
 };
 
 struct WebRequestInternalState;
 
 /// An HTTP(S) connection with response data stream that uses curl internally
-class WebRequest : public Object
+class ATOMIC_API WebRequest : public Object
 {
     friend class Web;
 
@@ -80,7 +81,7 @@ public:
     void Abort();
 
     /// Return whether connection is in the open state.
-    bool IsOpen() const { return GetState() == HTTP_OPEN; }
+    bool IsOpen() const { return GetState() == WR_OPEN; }
 
     /// Return whether E_WEBREQUESTDOWNLOADCHUNK event will be fired or if only E_WEBREQUESTCOMPLETE will be.
     bool HasDownloadChunkEvent();
@@ -99,8 +100,8 @@ public:
     /// Set post data for request
     void SetPostData(const String& postData);
 
-    /// Get the request response as a string
-    const String& GetResponse();
+    /// Get the download buffer queue
+    SharedPtr<BufferQueue> GetDownloadBufferQueue();
 
 private:
 #ifndef EMSCRIPTEN

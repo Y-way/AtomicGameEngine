@@ -3,7 +3,7 @@
 // ==                     See tb_core.h for more information.                    ==
 // ================================================================================
 //
-// Copyright (c) 2016, THUNDERBEAST GAMES LLC All rights reserved
+// Copyright (c) 2016-2017, THUNDERBEAST GAMES LLC All rights reserved
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -31,6 +31,22 @@
 #include "tb_msg.h"
 #include "tb_widgets_listener.h"
 #include "tb_widgets_common.h"
+#include "tb_window.h"
+#include "tb_scroll_container.h"
+#include "tb_select_item.h"
+#include "tb_menu_window.h"
+
+#define UIPROMPTMESSAGEID 1
+#define UIPROMPTEDITID 2
+#define UIFINDEREDITPATHID 1
+#define UIFINDERUPBUTTONID 2
+#define UIFINDERBOOKBUTTONID 3
+#define UIFINDERFOLDERBUTTONID 4
+#define UIFINDERBOOKLISTID 5
+#define UIFINDERFILELISTID 6
+#define UIFINDEREDITFILEID 7
+#define UIFINDEROKBUTTONID 8
+#define UIFINDERCANCELBUTTONID 9
 
 namespace tb {
 
@@ -135,6 +151,146 @@ private:
     double m_value;
     AXIS m_axis;
     unsigned m_margin;
+};
+
+
+/** TBPromptWindow is a window for requesting a string. */
+class TBPromptWindow : public TBWindow, private TBWidgetListener
+{
+public:
+    // For safe typecasting
+    TBOBJECT_SUBCLASS(TBPromptWindow, TBWindow);
+    TBPromptWindow(TBWidget *target, TBID id);
+    virtual ~TBPromptWindow();
+    bool Show(const char *title, const char *message,
+          const char *preset = nullptr, int dimmer = 0,
+          int width = 0, int height = 0);
+    virtual TBWidget *GetEventDestination() { return m_target.Get(); }
+    virtual bool OnEvent(const TBWidgetEvent &ev);
+    virtual void OnDie();
+
+private:
+    // TBWidgetListener
+    virtual void OnWidgetDelete(TBWidget *widget);
+    virtual bool OnWidgetDying(TBWidget *widget);
+    TBWidgetSafePointer m_dimmer;
+    TBWidgetSafePointer m_target;
+};
+
+// file, path finder
+class TBFinderWindow : public TBWindow, private TBWidgetListener
+{
+public:
+    // For safe typecasting
+    TBOBJECT_SUBCLASS(TBFinderWindow, TBWindow);
+    TBFinderWindow(TBWidget *target, TBID id);
+    virtual ~TBFinderWindow();
+    bool Show(const char *title,
+          const char *preset = nullptr, int dimmer = 0,
+          int width = 0, int height = 0);
+    virtual TBWidget *GetEventDestination() { return m_target.Get(); }
+    virtual bool OnEvent(const TBWidgetEvent &ev);
+    virtual void OnDie();
+
+private:
+    // TBWidgetListener
+    virtual void OnWidgetDelete(TBWidget *widget);
+    virtual bool OnWidgetDying(TBWidget *widget);
+    TBWidget *FindParentList( TBWidget *widget); // utility for dealing with menus.
+    TBWidgetSafePointer m_dimmer;
+    TBWidgetSafePointer m_target;
+    TBWidget *rightMenuParent;  // information for context menus
+    TBWidget *rightMenuChild;
+
+};
+
+
+/** TBSelectDropdown shows a button that opens a popup with a TBSelectList with items
+    provided by a TBSelectItemSource. */
+
+class TBPulldownMenu : public TBButton, public TBSelectItemViewer
+{
+public:
+    // For safe typecasting
+    TBOBJECT_SUBCLASS(TBPulldownMenu, TBButton);
+
+    TBPulldownMenu();
+    ~TBPulldownMenu();
+
+    /** Get the default item source for this widget. This source can be used to add
+        items of type TBGenericStringItem to this widget. */
+    TBGenericStringItemSource *GetDefaultSource() { return &m_default_source; }
+
+    /** Save the selected item. Transfers value from menu to button parent */
+    virtual void SetValue(int value);
+    virtual int GetValue() { return m_value; }
+
+    /** Save the selected item TBID. Transfers value from menu to button parent */
+    void SetValueID(TBID value) { m_valueid = value; }
+    TBID GetValueID() { return m_valueid; }
+
+    /** Get the ID of the selected item, or 0 if there is no item selected. */
+    TBID GetSelectedItemID();
+
+    /** Open the window if the model has items. */
+    void OpenWindow();
+
+    /** Close the window if it is open. */
+    void CloseWindow();
+
+    /** Return the menu window if it's open, or nullptr. */
+    TBMenuWindow *GetMenuIfOpen() const;
+
+    virtual void OnInflate(const INFLATE_INFO &info);
+    virtual bool OnEvent(const TBWidgetEvent &ev);
+
+    // TBSelectItemViewer 
+    virtual void OnSourceChanged();
+    virtual void OnItemChanged(int index) {}
+    virtual void OnItemAdded(int index) {}
+    virtual void OnItemRemoved(int index) {}
+    virtual void OnAllItemsRemoved() {}
+    
+    virtual bool OnWidgetInvokeEvent(TBWidget *widget, const TBWidgetEvent &ev) { return false; } 
+
+protected:
+
+    void InvokeModifiedEvent(TBID entryid);
+
+    TBGenericStringItemSource m_default_source;
+    TBWidgetSafePointer m_window_pointer; ///< Points to the dropdown window if opened
+    int m_value; /// which list item has been selected
+    TBID m_valueid; /// the TBID of the list item that was selected
+};
+
+
+/** TBDockWindow is a window for undocking (and redocking) content */
+
+class TBDockWindow : public TBWindow
+{
+public:
+    // For safe typecasting
+    TBOBJECT_SUBCLASS(TBDockWindow, TBWindow);
+
+    TBDockWindow( TBStr title, TBWidget *contentptr, int minwidth = 800, int minheight = 400 );
+    virtual ~TBDockWindow();
+
+    void SetDockOrigin( TBID dockid );
+    TBWidget *GetDockContent();
+    bool HasDockContent();
+    void Dock( TBWidget *target );
+    void Show(TBWidget *host, int xpos = 50, int ypos = 50 );
+
+    virtual bool OnEvent(const TBWidgetEvent &ev);
+    virtual void OnResized(int old_w, int old_h);
+
+protected:
+
+    void Redock();
+
+    TBWidget m_redock_button;  // return content to origin
+    TBID m_dockid; /// the TBID of the origin container
+
 };
 
 

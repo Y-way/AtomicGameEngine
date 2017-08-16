@@ -53,6 +53,11 @@
 #include "../IO/Log.h"
 
 // ATOMIC BEGIN
+
+#include "Text3D/Text3DFont.h"
+#include "Text3D/Text3DText.h"
+#include "Text3D/Text3D.h"
+
 #include <SDL/include/SDL.h>
 #include <SDL/include/SDL_syswm.h>
 // ATOMIC END
@@ -215,7 +220,7 @@ PODVector<IntVector3> Graphics::GetResolutions(int monitor) const
 
 IntVector2 Graphics::GetDesktopResolution(int monitor) const
 {
-#if !defined(__ANDROID__) && !defined(IOS)
+#if !defined(__ANDROID__) && !defined(IOS) && !defined(TVOS)
     SDL_DisplayMode mode;
     SDL_GetDesktopDisplayMode(monitor, &mode);
     return IntVector2(mode.w, mode.h);
@@ -404,6 +409,12 @@ void RegisterGraphicsLibrary(Context* context)
     DebugRenderer::RegisterObject(context);
     Octree::RegisterObject(context);
     Zone::RegisterObject(context);
+
+    // ATOMIC BEGIN
+    Text3DFont::RegisterObject(context);
+    Text3DText::RegisterObject(context);
+    Text3D::RegisterObject(context);
+    // ATOMIC END
 }
 
 // ATOMIC BEGIN

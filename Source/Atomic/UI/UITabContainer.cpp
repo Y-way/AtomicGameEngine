@@ -28,6 +28,8 @@
 #include "UI.h"
 #include "UIEvents.h"
 #include "UITabContainer.h"
+#include "UILayout.h"
+#include "UIButton.h"
 
 using namespace tb;
 
@@ -94,6 +96,140 @@ void UITabContainer::SetCurrentPage(int page)
 bool UITabContainer::OnEvent(const tb::TBWidgetEvent &ev)
 {
     return UIWidget::OnEvent(ev);
+}
+
+
+/// returns the current page number
+int UITabContainer::GetCurrentPage()
+{
+    if (!widget_)
+        return 0;
+
+    return ((TBTabContainer*)widget_)->GetCurrentPage();
+
+}
+
+/// deletes a tab + page, returns true if successful
+bool UITabContainer::DeletePage( int page )
+{
+    if (!widget_ || page < 0 || page > GetNumPages() - 1)
+        return false;
+
+    UILayout *uil = GetTabLayout();
+    if (uil)
+    {
+        UIWidget* mytab = NULL;
+        int nn=0; 
+        for (UIWidget *child = uil->GetFirstChild(); child; child = child->GetNext())
+            if (nn++ == page)
+                mytab = child;
+        if (mytab)
+        {
+            mytab->UnsubscribeFromAllEvents();
+            uil->RemoveChild( mytab, true );
+        }
+    }
+
+    UIWidget *pages = GetContentRoot(); 
+    if (pages)
+    {
+        UIWidget* mypage = NULL;
+        int nn=0; 
+        for (UIWidget *child = pages->GetFirstChild(); child; child = child->GetNext())
+            if (nn++ == page)
+                mypage = child;
+        if (mypage)
+        {
+            mypage->UnsubscribeFromAllEvents();
+            pages->RemoveChild( mypage, true );
+        }
+    }
+    
+    Invalidate();
+
+    // tab container "feature", can not set it to the page number that was removed.
+    int num = 0;
+    if ( page - 1 > 0 ) num = page - 1;
+    SetCurrentPage(num);
+
+    return true;
+}
+
+/// adds a tab + page from layout file
+void UITabContainer::AddTabPageFile ( const String &tabname, const String &layoutFile, bool selecttab )
+{
+    UIButton* button = new UIButton(context_);
+    button->SetText(tabname);
+    button->SetId(tabname);
+    UILayout *uil = GetTabLayout();
+    if (uil && button)
+        uil->AddChild(button);
+    UILayout* layout = new UILayout(context_);
+    layout->SetAxis(UI_AXIS_Y);
+    layout->SetLayoutSize(UI_LAYOUT_SIZE_AVAILABLE); 
+    layout->SetLayoutPosition(UI_LAYOUT_POSITION_GRAVITY); 
+    layout->SetLayoutDistribution(UI_LAYOUT_DISTRIBUTION_AVAILABLE); 
+    layout->Load (layoutFile);
+    UIWidget *pages = GetContentRoot();
+    if (pages && layout)
+        pages->AddChild(layout);
+
+    Invalidate();
+
+    if (selecttab) 
+        SetCurrentPage( GetNumPages() -1 );
+}
+
+/// adds a tab + page widget(s)
+void UITabContainer::AddTabPageWidget ( const String &tabname, UIWidget *widget, bool selecttab ) 
+{
+    UIButton* button = new UIButton(context_);
+    button->SetText(tabname);
+    button->SetId(tabname);
+    UILayout *uil = GetTabLayout();
+    if (uil && button)
+        uil->AddChild(button);
+    UILayout* layout = new UILayout(context_);
+    layout->SetAxis(UI_AXIS_Y);
+    layout->SetLayoutSize(UI_LAYOUT_SIZE_AVAILABLE);
+    layout->SetLayoutPosition(UI_LAYOUT_POSITION_GRAVITY);
+    layout->SetLayoutDistribution(UI_LAYOUT_DISTRIBUTION_AVAILABLE);
+    layout->AddChild(widget);
+    UIWidget *pages = GetContentRoot();
+    if (pages && layout)
+        pages->AddChild(layout);
+
+    Invalidate();
+
+    if (selecttab) 
+        SetCurrentPage( GetNumPages() -1 );
+}
+
+/// undocks the page into a window with the tab name, and removes the tab
+void UITabContainer::UndockPage ( int page )
+{
+    if (!widget_)
+        return;
+
+    ((TBTabContainer*)widget_)->UndockPage(page);
+
+    // tab container "feature", can not set it to the page number that was removed.
+    int num = 0;
+    if ( page - 1 > 0 ) num = page - 1;
+    SetCurrentPage(num);
+
+}
+
+/// docks content from a UIDockWindow with specified title
+bool UITabContainer::DockWindow ( String windowTitle )
+{
+    if (!widget_)
+        return false;
+    bool done = ((TBTabContainer*)widget_)->DockFromWindow(windowTitle.CString());
+    if (done) 
+        SetCurrentPage( GetNumPages() -1 );
+
+   return done;
 }
 
 }

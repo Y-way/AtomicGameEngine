@@ -101,28 +101,58 @@ void CSClassWriter::WriteManagedProperties(String& sourceOut)
             JSBFunctionType* fType = NULL;
             JSBFunctionType* getType = NULL;
             JSBFunctionType* setType = NULL;
+            bool getStatic = false;
+            bool setStatic = false;
 
             if (CSTypeHelper::OmitFunction(prop->getter_) || CSTypeHelper::OmitFunction(prop->setter_))
                 continue;
 
+            if (klass_->IsInterface())
+            {
+                if ((prop->getter_ && prop->getter_->IsInheritedInterface()) ||
+                    (prop->setter_ && prop->setter_->IsInheritedInterface()))
+                {
+                    // note possibility of mismatched inheritance on get/set
+                    // if possible to trip this in C#, will need to be addressed here
+                    continue;
+                }
+            }
+
             if (prop->getter_ && !prop->getter_->Skip())
             {
-                fType = getType = prop->getter_->GetReturnType();
+                getStatic = prop->getter_->IsStatic();
+                fType = getType = prop->getter_->GetReturnType();                
             }
+
             if (prop->setter_ && !prop->setter_->Skip())
             {
+                setStatic = prop->setter_->IsStatic();
                 setType = prop->setter_->GetParameters()[0];
 
                 if (!fType)
+                {
                     fType = setType;
+                }
                 else if (fType->type_->ToString() != setType->type_->ToString())
+                {
                     continue;
+                }
+                else if (getStatic != setStatic)
+                {
+                    ATOMIC_LOGWARNINGF("CSClassWriter::WriteManagedProperties : mismatched static qualifier on property %s:%s",
+                                       klass_->GetName().CString(), prop->name_.CString());
+
+                    continue;
+                }
             }
 
             if (!fType)
                 continue;
 
-            String line = klass_->IsInterface() ? "" : "public ";
+            String line = (klass_->IsInterface() ? "" : "public ");
+
+            if (getStatic)
+                line += "static ";
 
             JSBClass* baseClass = klass_->GetBaseClass();
             if (baseClass)
@@ -223,17 +253,21 @@ void CSClassWriter::GenerateManagedSource(String& sourceOut)
 
     JSBClass* baseClass = klass_->GetBaseClass();
     const StringVector& csharpInterfaces = klass_->GetCSharpInterfaces();
+    const PODVector<JSBClass*>& nativeInterfaces = klass_->GetInterfaces();
 
-    if (baseClass || csharpInterfaces.Size())
+    String classString = "class";
+
+    if (klass_->IsInterface())
+        classString = "interface";
+
+    if (baseClass || csharpInterfaces.Size() || nativeInterfaces.Size())
     {
         StringVector baseStrings;
 
         if (baseClass)
         {
             baseStrings.Push(baseClass->GetName());
-        }
-        
-        const PODVector<JSBClass*>& nativeInterfaces = klass_->GetInterfaces();
+        }               
 
         for (unsigned i = 0; i < nativeInterfaces.Size(); i++)
         {
@@ -245,18 +279,12 @@ void CSClassWriter::GenerateManagedSource(String& sourceOut)
             baseStrings.Push(csharpInterfaces[i]);
         }
 
+        String baseString = String::Joined(baseStrings, ", ");
 
-        String baseString = String::Joined(baseStrings, ",");
-
-        line = ToString("public partial class %s%s : %s\n", klass_->GetName().CString(), klass_->IsGeneric() ? "<T>" : "", baseString.CString());
+        line = ToString("public partial %s %s%s : %s\n", classString.CString(), klass_->GetName().CString(), klass_->IsGeneric() ? "<T>" : "", baseString.CString());
     }
     else
     {
-        String classString = "class";
-
-        if (klass_->IsInterface())
-            classString = "interface";
-
         line = ToString("public partial %s %s%s\n", classString.CString(), klass_->GetName().CString(), klass_->IsGeneric() ? "<T>" : "");
     }
 
@@ -301,6 +329,9 @@ void CSClassWriter::GenerateManagedSource(String& sourceOut)
             continue;
 
         if (function->IsDestructor())
+            continue;
+
+        if (klass_->IsInterface() && function->IsInheritedInterface())
             continue;
 
         if (CSTypeHelper::OmitFunction(function))

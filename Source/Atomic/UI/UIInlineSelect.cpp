@@ -68,6 +68,22 @@ void UIInlineSelect::SetLimits(double minimum, double maximum)
 
 }
 
+// set the inc, dec step size
+void UIInlineSelect::SetStepSize(double step)
+{
+    if (!widget_)
+        return;
+    ((TBInlineSelect*) widget_)->SetStepSize(step);
+}
+
+// get the inc, dec step size
+double UIInlineSelect::GetStepSize()
+{
+    if (!widget_)
+        return 0.0;
+    return ((TBInlineSelect*) widget_)->GetStepSize();
+}
+
 bool UIInlineSelect::OnEvent(const tb::TBWidgetEvent &ev)
 {
     if (ev.type == EVENT_TYPE_CUSTOM && ev.ref_id == TBIDC("edit_complete"))

@@ -123,6 +123,20 @@ String UISelectList::GetSelectedItemID()
     return id_;
 }
 
+/// Returns the string of the selected item from the list widget
+String UISelectList::GetSelectedItemString()
+{
+    int selected = ((TBSelectList*)widget_)->GetValue();
+    TBSelectItemSource *tbsource = (TBSelectItemSource*)((TBSelectList*)widget_)->GetSource();
+    if ( tbsource && selected >= 0 && selected < tbsource->GetNumItems() )
+    {
+        const char *strx = tbsource->GetItemString(selected);
+        if (strx )
+            return ( tbsource->GetItemString(selected) );
+    }
+    return String::EMPTY;
+}
+
 bool UISelectList::GetItemSelected(int index)
 {
     if (!widget_)
@@ -144,6 +158,65 @@ String UISelectList::GetItemID(int index)
 
     return _id;
 
+}
+
+/// Returns the string of item at the requested index from the list widget
+String UISelectList::GetItemString(int index)
+{
+    TBSelectItemSource *tbsource = (TBSelectItemSource*)((TBSelectList*)widget_)->GetSource();
+    if ( tbsource && index >= 0 && index < tbsource->GetNumItems() )
+    {
+        const char *strx = tbsource->GetItemString(index);
+        if (strx != NULL)
+            return ( tbsource->GetItemString(index) );
+    }
+    return String::EMPTY;
+}
+
+/// Add a new item at the given index.
+bool UISelectList::AddItem(int index, const String& str, const String& id )
+{
+    if ( index < 0 ) return false; // dont let the UI crash.
+    TBSelectItemSourceList<TBGenericStringItem> *tbsource = (TBSelectItemSourceList<TBGenericStringItem> *)((TBSelectList*)widget_)->GetSource();
+    if ( tbsource )
+    {
+      return tbsource->AddItem ( new TBGenericStringItem(str.CString(), TBID(id.CString())), index);
+    }
+    return false;
+}
+
+/// Delete the item at the given index.
+void UISelectList::DeleteItem(int index)
+{
+    TBSelectItemSourceList<TBGenericStringItem> *tbsource = (TBSelectItemSourceList<TBGenericStringItem> *)((TBSelectList*)widget_)->GetSource();
+    if ( tbsource && index >= 0 && index < tbsource->GetNumItems() )
+    {
+       tbsource->DeleteItem(index);
+    }
+}
+
+/// Delete all items. 
+void UISelectList::DeleteAllItems()
+{
+    TBSelectItemSourceList<TBGenericStringItem> *tbsource = (TBSelectItemSourceList<TBGenericStringItem> *)((TBSelectList*)widget_)->GetSource();
+    if ( tbsource  )
+    {
+       tbsource->DeleteAllItems();
+    }
+}
+
+/// Searches the items for the id as a number, returns index, -1 if not found 
+int UISelectList::FindId ( int idnum )
+{
+    uint32 myid = (uint32)idnum;
+    TBSelectItemSource *tbsource = (TBSelectItemSource*)((TBSelectList*)widget_)->GetSource();
+    int nn = 0;
+    for( nn=0; nn < tbsource->GetNumItems(); nn++ )
+    {
+       if ( tbsource->GetItemID(nn) == myid ) 
+            return nn;
+    }
+    return -1;
 }
 
 String UISelectList::GetHoverItemID()

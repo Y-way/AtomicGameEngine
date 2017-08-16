@@ -166,9 +166,10 @@ enum UI_AXIS {
 class UIView;
 class UILayoutParams;
 class UIFontDescription;
+class UISelectItemSource;
 
 /// Wraps a TurboBadger widget in our Object model
-class UIWidget : public Object, public tb::TBWidgetDelegate
+class ATOMIC_API UIWidget : public Object, public tb::TBWidgetDelegate
 {
     friend class UI;
 
@@ -191,17 +192,28 @@ class UIWidget : public Object, public tb::TBWidgetDelegate
     String GetText();
 
     void SetRect(IntRect r);
-    void SetSize(int width, int height);
+    virtual bool SetSize(int width, int height);
     void SetPosition(int x, int y);
     void SetText(const String& text);
     void SetSkinBg(const String& id);
     void SetLayoutParams(UILayoutParams* params);
     void SetFontDescription(UIFontDescription* fd);
 
-    void Remove();
+    virtual void Remove();
     void RemoveChild(UIWidget* child, bool cleanup = true);
 
     void DeleteAllChildren();
+
+    /// searches for specified widget ID from the top of the widget tree, returns the 1st one found.
+    virtual UIWidget *FindWidget ( const String& searchid );
+    /// return all of the widgets of the specified classname and id that is not 0 from the current widget
+    virtual void SearchWidgetClass ( const String& className, PODVector<UIWidget*> &results );
+    ///  return all of the widgets of the specified id and id that is not 0 from the current widget
+    virtual void SearchWidgetId ( const String& searchid, PODVector<UIWidget*> &results );
+    /// return all of the widgets with the specified text and id that is not 0 from the current widget
+    virtual void SearchWidgetText ( const String& searchText, PODVector<UIWidget*> &results );
+    /// print out the widget tree to stdout from the current widget
+    virtual void PrintPrettyTree();
 
     // String ID
     virtual void SetId(const String& id);
@@ -213,9 +225,8 @@ class UIWidget : public Object, public tb::TBWidgetDelegate
     void SetValue(double value);
     virtual double GetValue();
 
-    void SetFocus();
-    bool GetFocus();
-
+    virtual void SetFocus();
+    virtual bool GetFocus() const;
 
     /// Set focus to first widget which accepts it
     void SetFocusRecursive();
@@ -340,6 +351,7 @@ protected:
 
     virtual bool OnEvent(const tb::TBWidgetEvent &ev);
     virtual void OnDelete();
+    virtual void OnResized(int old_w, int old_h);
 
     String id_;
     tb::TBWidget* widget_;

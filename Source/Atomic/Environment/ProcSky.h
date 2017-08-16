@@ -22,7 +22,7 @@
 
 #pragma once
 
-#if defined(_WIN32) || defined(_WIN64)
+#if _MSC_VER
 #define fmax max
 #define fmin min
 #endif
@@ -40,7 +40,7 @@ namespace Atomic
 {
 
 
-class ProcSky : public Drawable
+class ATOMIC_API ProcSky : public Drawable
 {
     ATOMIC_OBJECT(ProcSky, Drawable);
 

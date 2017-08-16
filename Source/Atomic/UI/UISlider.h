@@ -28,7 +28,7 @@ namespace Atomic
 {
 
 
-class UISlider : public UIWidget
+class ATOMIC_API UISlider : public UIWidget
 {
     ATOMIC_OBJECT(UISlider, UIWidget)
 
@@ -38,6 +38,8 @@ public:
     virtual ~UISlider();
 
     void SetLimits(double minimum, double maximum);
+    double GetMinValue() const;
+    double GetMaxValue() const;
 
 protected:
 

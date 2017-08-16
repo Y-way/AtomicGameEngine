@@ -17,6 +17,8 @@
 #include "tb_editfield.h"
 #endif // TB_ALWAYS_SHOW_EDIT_FOCUS
 
+#include <stdio.h>  // for printfs in PrintPretty
+
 namespace tb {
 
 //static data
@@ -773,6 +775,105 @@ TBWidget *TBWidget::GetWidgetAt(int x, int y, bool include_children) const
     return last_match;
 }
 
+// ATOMIC BEGIN
+
+/** Returns the number of children this widget contains. */
+int TBWidget::numChildren()
+{
+    int nn = 0;
+    TBLinkListOf<TBWidget>::Iterator mx = GetIteratorForward();
+    while (TBWidget *mxw = mx.GetAndStep())
+    {
+        nn++;
+    }
+    return nn;
+}
+
+/** print out the widget tree */
+void TBWidget::PrintPretty( TBStr indent, bool last)
+{
+    printf("%s", indent.CStr());
+    if (last)
+    {
+       printf("\\-");
+       indent.Append("  ");
+    }
+    else
+    {
+       printf("|-");
+       indent.Append("| ");
+    }
+    TBStr shorty(GetText(), 32); 
+    printf("%s:%u `%s`\n", GetClassName(), (uint32)GetID(), shorty.CStr() );
+    int num = numChildren();
+    for (int ii = 0; ii < num; ii++)
+    {
+        TBWidget *child = GetChildFromIndex(ii);
+        child->PrintPretty(indent, ii == num - 1);
+    }
+}
+
+/// searches for specified widget ID from the top of the widget tree, returns the 1st one found.
+TBWidget *TBWidget::FindWidget ( TBID searchid )
+{
+    TBWidget *rootwidget = GetParentRoot(true);
+    if(rootwidget)
+        return rootwidget->GetWidgetByID( searchid );
+    return NULL;
+}
+
+/// return all of the widgets of the specified classname
+void TBWidget::SearchWidgetClass ( TBStr className, TBValue &results )
+{
+    if ( className.Equals(GetClassName()) )
+    {
+        TBValue *new_val = results.GetArray()->AddValue();
+        new_val->SetObject(this); 
+    }
+    int num = numChildren();
+    for (int ii = 0; ii < num; ii++)
+    {
+        TBWidget *child = GetChildFromIndex(ii);
+        child->SearchWidgetClass( className, results);
+    }
+}
+
+///  return all of the widgets of the specified id
+void TBWidget::SearchWidgetId ( TBID searchId, TBValue &results )
+{
+    if ( searchId == GetID() )
+    {
+        TBValue *new_val = results.GetArray()->AddValue();
+        new_val->SetObject(this); 
+    }
+    int num = numChildren();
+    for (int ii = 0; ii < num; ii++)
+    {
+        TBWidget *child = GetChildFromIndex(ii);
+        child->SearchWidgetId( searchId, results);
+    }
+}
+
+/// return all of the widgets with the specified text
+void TBWidget::SearchWidgetText ( TBStr searchText, TBValue &results )
+{
+    if ( searchText.Equals(GetText()) )
+    {
+        TBValue *new_val = results.GetArray()->AddValue();
+        new_val->SetObject(this); 
+    }
+    int num = numChildren();
+    for (int ii = 0; ii < num; ii++)
+    {
+        TBWidget *child = GetChildFromIndex(ii);
+        child->SearchWidgetText( searchText, results);
+    }
+}
+
+
+// ATOMIC END
+
+
 TBWidget *TBWidget::GetChildFromIndex(int index) const
 {
     int i = 0;
@@ -814,11 +915,19 @@ bool TBWidget::IsEventDestinationFor(TBWidget *other_widget) const
     return false;
 }
 
-TBWidget *TBWidget::GetParentRoot()
+TBWidget *TBWidget::GetParentRoot(bool view_root)
 {
     TBWidget *tmp = this;
+
     while (tmp->m_parent)
+    {
+        if (view_root && !tmp->m_parent->m_parent)
+        {
+            return tmp;
+        }
+
         tmp = tmp->m_parent;
+    }
     return tmp;
 }
 
@@ -908,6 +1017,10 @@ void TBWidget::OnPaintChildren(const PaintProps &paint_props)
 
 void TBWidget::OnResized(int old_w, int old_h)
 {
+    // ATOMIC BEGIN  So pure UIWidgets can handle resize
+    if (GetDelegate()) { GetDelegate()->OnResized(old_w, old_h); }
+    // ATOMIC END
+
     int dw = m_rect.w - old_w;
     int dh = m_rect.h - old_h;
     for (TBWidget *child = GetFirstChild(); child; child = child->GetNext())
@@ -929,6 +1042,7 @@ void TBWidget::OnResized(int old_w, int old_h)
 
         child->SetRect(rect);
     }
+
 }
 
 void TBWidget::OnInflateChild(TBWidget *child)

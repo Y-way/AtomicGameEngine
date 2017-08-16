@@ -23,7 +23,9 @@
 #include "../Precompiled.h"
 
 #include "../Core/Context.h"
-#include "../Core/EventProfiler.h"
+// ATOMIC BEGIN
+#include "../Core/Profiler.h"
+// ATOMIC END
 #include "../IO/Log.h"
 
 #ifndef MINI_URHO
@@ -315,8 +317,8 @@ void Context::ReleaseIK()
     if (ikInitCounter < 0)
         ATOMIC_LOGERROR("Too many calls to Context::ReleaseIK()");
 }
-#endif
-#endif
+#endif // ifdef URHO3D_IK
+#endif // ifndef MINI_URHO
 
 void Context::CopyBaseAttributes(StringHash baseType, StringHash derivedType)
 {
@@ -446,30 +448,12 @@ void Context::RemoveEventReceiver(Object* receiver, Object* sender, StringHash e
 
 void Context::BeginSendEvent(Object* sender, StringHash eventType)
 {
-#ifdef ATOMIC_PROFILING
-    if (EventProfiler::IsActive())
-    {
-        EventProfiler* eventProfiler = GetSubsystem<EventProfiler>();
-        if (eventProfiler)
-            eventProfiler->BeginBlock(eventType);
-    }
-#endif
-
     eventSenders_.Push(sender);
 }
 
 void Context::EndSendEvent()
 {
     eventSenders_.Pop();
-
-#ifdef ATOMIC_PROFILING
-    if (EventProfiler::IsActive())
-    {
-        EventProfiler* eventProfiler = GetSubsystem<EventProfiler>();
-        if (eventProfiler)
-            eventProfiler->EndBlock();
-    }
-#endif
 }
 
 }

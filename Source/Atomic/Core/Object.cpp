@@ -25,6 +25,9 @@
 #include "../Core/Context.h"
 #include "../Core/Thread.h"
 #include "../IO/Log.h"
+// ATOMIC BEGIN
+#include "../Core/Profiler.h"
+// ATOMIC END
 
 #include "../DebugNew.h"
 
@@ -302,8 +305,34 @@ void Object::SendEvent(StringHash eventType)
 
     SendEvent(eventType, noEventData);
 }
-
+// ATOMIC BEGIN
 void Object::SendEvent(StringHash eventType, VariantMap& eventData)
+{
+#if ATOMIC_PROFILING
+    bool eventProfilingEnabled = false;
+    if (Profiler* profiler = GetSubsystem<Profiler>())
+        eventProfilingEnabled = profiler->GetEventProfilingEnabled();
+
+    if (eventProfilingEnabled)
+        SendEventProfiled(eventType, eventData);
+    else
+#endif
+        SendEventNonProfiled(eventType, eventData);
+}
+
+void Object::SendEventProfiled(StringHash eventType, VariantMap& eventData)
+{
+#if ATOMIC_PROFILING
+    String eventName;
+    if (!StringHash::GetSignificantString(eventType, eventName))
+        eventName = eventType.ToString();
+    ATOMIC_PROFILE_SCOPED(eventName.CString(), PROFILER_COLOR_EVENTS);
+#endif
+    SendEventNonProfiled(eventType, eventData);
+}
+
+void Object::SendEventNonProfiled(StringHash eventType, VariantMap& eventData)
+// ATOMIC END
 {
     if (!Thread::IsMainThread())
     {
@@ -402,7 +431,7 @@ void Object::SendEvent(StringHash eventType, VariantMap& eventData)
     context->EndSendEvent();
 
 // ATOMIC BEGIN
-    context->GlobalEndSendEvent(this,eventType, eventData);
+    context->GlobalEndSendEvent(this, eventType, eventData);
 // ATOMIC END
 
 }
@@ -590,6 +619,106 @@ void Object::UnsubscribeFromEventReceiver(Object* receiver)
         }
     }
 
+}
+
+template <> Engine* Object::GetSubsystem<Engine>() const
+{
+    return context_->engine_;
+}
+
+template <> Time* Object::GetSubsystem<Time>() const
+{
+    return context_->time_;
+}
+
+template <> WorkQueue* Object::GetSubsystem<WorkQueue>() const
+{
+    return context_->workQueue_;
+}
+
+template <> Profiler* Object::GetSubsystem<Profiler>() const
+{
+    return context_->profiler_;
+}
+
+template <> FileSystem* Object::GetSubsystem<FileSystem>() const
+{
+    return context_->fileSystem_;
+}
+
+template <> Log* Object::GetSubsystem<Log>() const
+{
+    return context_->log_;
+}
+
+template <> ResourceCache* Object::GetSubsystem<ResourceCache>() const
+{
+    return context_->cache_;
+}
+
+template <> Localization* Object::GetSubsystem<Localization>() const
+{
+    return context_->l18n_;
+}
+
+template <> Network* Object::GetSubsystem<Network>() const
+{
+    return context_->network_;
+}
+
+template <> Web* Object::GetSubsystem<Web>() const
+{
+    return context_->web_;
+}
+
+template <> Database* Object::GetSubsystem<Database>() const
+{
+    return context_->db_;
+}
+
+template <> Input* Object::GetSubsystem<Input>() const
+{
+    return context_->input_;
+}
+
+template <> Audio* Object::GetSubsystem<Audio>() const
+{
+    return context_->audio_;
+}
+
+template <> UI* Object::GetSubsystem<UI>() const
+{
+    return context_->ui_;
+}
+
+template <> SystemUI* Object::GetSubsystem<SystemUI>() const
+{
+    return context_->systemUi_;
+}
+
+template <> Graphics* Object::GetSubsystem<Graphics>() const
+{
+    return context_->graphics_;
+}
+
+template <> Renderer* Object::GetSubsystem<Renderer>() const
+{
+    return context_->renderer_;
+}
+
+template <> Console* Object::GetSubsystem<Console>() const
+{
+    return context_->console_;
+}
+
+template <> DebugHud* Object::GetSubsystem<DebugHud>() const
+{
+    return context_->debugHud_;
+}
+
+template <> Metrics* Object::GetSubsystem<Metrics>() const
+{
+    return context_->metrics_;
 }
 
 // ATOMIC END

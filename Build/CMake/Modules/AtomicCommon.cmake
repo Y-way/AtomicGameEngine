@@ -22,17 +22,18 @@
 
 include(CMakeParseArguments)
 
-if ($ENV{ATOMIC_BUILD_DIST})
-    add_definitions(-DATOMIC_BUILD_DIST=1)
-endif ()
-
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DATOMIC_DEBUG")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DATOMIC_DEBUG")
 if (CMAKE_SIZEOF_VOID_P MATCHES 8)
     set(ATOMIC_PROJECT_ARCH "x86_64")
+    set(ATOMIC_PROJECT_ARCH_SHORT "x64")
+    set(ATOMIC_PROJECT_ARCH_BITS "64")
     set(ATOMIC_64BIT 1)
 else ()
     set(ATOMIC_PROJECT_ARCH "x86")
+    set(ATOMIC_PROJECT_ARCH_SHORT "x86")
+    set(ATOMIC_PROJECT_ARCH_BITS "32")
+    set(ATOMIC_64BIT 0)
 endif ()
 
 # Macro for defining source files with optional arguments as follows:
@@ -184,8 +185,72 @@ endmacro()
 macro(setup_executable)
     cmake_parse_arguments(ARG "PRIVATE;TOOL;NODEPS" "" "" ${ARGN})
     check_source_files()
-
     add_executable(${TARGET_NAME} ${ARG_UNPARSED_ARGUMENTS} ${SOURCE_FILES})
-
     setup_target()
+    if (ARG_TOOL)
+        if (DEFINED ATOMIC_TOOL_DIR)
+            set (TOOL_DIR ${ATOMIC_TOOL_DIR})
+        else ()
+            set (TOOL_DIR ${ATOMIC_SOURCE_DIR}/Artifacts/Build/${TARGET_NAME})
+        endif ()
+        set_property(TARGET ${TARGET_NAME} PROPERTY RUNTIME_OUTPUT_DIRECTORY ${TOOL_DIR})
+    endif ()
+endmacro()
+
+# Macro for replacing substrings in every variable specified in the list.
+# Macro arguments:
+#  substring - a value that is to be replaced.
+#  replacement - a new value that will replace `substring`.
+#  variable_list - a list of variables. If list is specified manually enclose it in quotes and separate items with semicolon.
+macro(replace_in_list substring replacement variable_list)
+    foreach (single_variable ${variable_list})
+        string(REPLACE "${substring}" "${replacement}" ${single_variable} "${${single_variable}}")
+    endforeach ()
+endmacro()
+
+# Macro for setting msvc runtime flags globally.
+# Macro arguments:
+#  runtime_flag - release build runtime flag, /MT or /MD. Debug flag will be deduced automatically by appending 'd'.
+macro(msvc_set_runtime runtime_flag)
+    set(COMPILER_DEBUG_VARS "CMAKE_C_FLAGS_DEBUG;CMAKE_CXX_FLAGS_DEBUG")
+    set(COMPILER_RELEASE_VARS "CMAKE_C_FLAGS_RELEASE;CMAKE_C_FLAGS_RELWITHDEBINFO;CMAKE_C_FLAGS_MINSIZEREL;CMAKE_CXX_FLAGS_RELEASE;CMAKE_CXX_FLAGS_RELWITHDEBINFO;CMAKE_CXX_FLAGS_MINSIZEREL")
+    set(COMPILER_COMMON_VARS "CMAKE_C_FLAGS;CMAKE_CXX_FLAGS")
+    set(COMPILER_RUNTIME_FLAGS "/MDd;/MD;/MTd;/MT")
+    # Clear old runtime flags.
+    foreach(flag ${COMPILER_RUNTIME_FLAGS})
+        replace_in_list(${flag} "" "${COMPILER_DEBUG_VARS};${COMPILER_RELEASE_VARS};${COMPILER_COMMON_VARS}")
+    endforeach()
+    # Add release runtime flags.
+    foreach(var ${COMPILER_RELEASE_VARS})
+        set(${var} "${${var}} ${runtime_flag}")
+    endforeach()
+    # Add debug runtime flags.
+    foreach(var ${COMPILER_DEBUG_VARS})
+        set(${var} "${${var}} ${runtime_flag}d")
+    endforeach()
+endmacro()
+
+# Macro deploys Qt dlls to folder where target executable is located.
+# Macro arguments:
+#  target - name of target which links to Qt.
+macro(deploy_qt_dlls target)
+    if (WIN32)
+        if (TARGET ${target})
+            # Find Qt dir
+            foreach (dir ${CMAKE_PREFIX_PATH})
+                if (EXISTS ${dir}/bin/windeployqt.exe)
+                    set(windeployqt "${dir}/bin/windeployqt.exe")
+                    break()
+                endif ()
+            endforeach ()
+            if (windeployqt)
+                add_custom_command(
+                    TARGET ${target}
+                    POST_BUILD
+                    COMMAND "${windeployqt}" --no-quick-import --no-translations --no-system-d3d-compiler --no-compiler-runtime --no-webkit2 --no-angle --no-opengl-sw $<TARGET_FILE_DIR:${target}>
+                    VERBATIM
+                )
+            endif ()
+        endif ()
+    endif ()
 endmacro()

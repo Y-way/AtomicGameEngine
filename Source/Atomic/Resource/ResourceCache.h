@@ -115,7 +115,7 @@ public:
     bool AddPackageFile(PackageFile* package, unsigned priority = PRIORITY_LAST);
     /// Add a package file for loading resources from by name. Optional priority parameter which will control search order.
     bool AddPackageFile(const String& fileName, unsigned priority = PRIORITY_LAST);
-    /// Add a manually created resource. Must be uniquely named.
+    /// Add a manually created resource. Must be uniquely named within its type.
     bool AddManualResource(Resource* resource);
     /// Remove a resource load directory.
     void RemoveResourceDir(const String& pathName);
@@ -193,7 +193,7 @@ public:
     template <class T> bool BackgroundLoadResource(const String& name, bool sendEventOnFailure = true, Resource* caller = 0);
     /// Template version of returning loaded resources of a specific type.
     template <class T> void GetResources(PODVector<T*>& result) const;
-    /// Return whether a file exists by name.
+    /// Return whether a file exists in the resource directories or package files. Does not check manually added in-memory resources.
     bool Exists(const String& name) const;
     /// Return memory budget for a resource type.
     unsigned long long GetMemoryBudget(StringHash type) const;
@@ -343,7 +343,7 @@ void ATOMIC_API RegisterResourceLibrary(Context* context);
 
 // ATOMIC BEGIN
 /// Extension used for package files
-extern const char* PAK_EXTENSION;
+extern ATOMIC_API const char* PAK_EXTENSION;
 // ATOMIC END
 
 

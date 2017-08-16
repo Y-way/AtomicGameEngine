@@ -16,6 +16,18 @@ function programFileExists(filePath)
     }
 }
 
+// checks to see if a folder exists
+function programDirectoryExists(filePath)
+{
+    try
+    {
+        return fs.statSync(filePath).isDirectory();
+    }
+    catch (err)
+    {
+        return false;
+    }
+}
 
 function processOptions(config) {
 
@@ -33,7 +45,10 @@ function processOptions(config) {
             if ( spawnSync)
                 config["with-atomicnet"] = spawnSync("which", ["xbuild"]).status == 1 ? false : true;
         } else if (os.platform() == "linux") {  // see if xbuild is available on linux
-            config["with-atomicnet"] = programFileExists('/usr/bin/xbuild');
+            var hasXbuild = programFileExists('/usr/bin/xbuild');
+            var hasMonoFile = programFileExists('/usr/bin/mono');
+            var hasMonoDir = programDirectoryExists('/usr/bin/mono/');
+            config["with-atomicnet"] = hasXbuild && ( hasMonoFile || hasMonoDir );
         }
 	}
 

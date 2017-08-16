@@ -354,14 +354,16 @@ enum WIDGET_HIT_STATUS {
     WIDGET_HIT_STATUS_HIT_NO_CHILDREN		///< The widget was hit, no children should be hit.
 };
 
-// ATOMIC: this must only be used by UIWidget, as we are casting to it
+// ATOMIC BEGIN: this must only be used by UIWidget, as we are casting to it
 class TBWidgetDelegate
 {
 public:
     virtual bool OnEvent(const TBWidgetEvent &ev) = 0;
     virtual void OnFocusChanged(bool focused) = 0;
     virtual void OnDelete() = 0;
+    virtual void OnResized(int old_w, int old_h) = 0;
 };
+// ATOMIC END
 
 /** The base TBWidget class.
     Make a subclass to implement UI controls.
@@ -619,6 +621,24 @@ public:
     TBLinkListOf<TBWidget>::Iterator GetIteratorForward() { return m_children.IterateForward(); }
     TBLinkListOf<TBWidget>::Iterator GetIteratorBackward() { return m_children.IterateBackward(); }
 
+// ATOMIC BEGIN
+
+    /** Returns the number of children this widget contains. */
+    int numChildren();
+    /// searches for specified widget ID from the top of the widget tree, returns the 1st one found.
+    TBWidget *FindWidget ( TBID searchid );
+
+    /// print out the widget tree to stdout
+    void PrintPretty( TBStr indent, bool last);
+    /// return all of the widgets of the specified classname
+    void SearchWidgetClass ( TBStr className, TBValue &results );  
+    ///  return all of the widgets of the specified id
+    void SearchWidgetId ( TBID searchid, TBValue &results );
+    /// return all of the widgets with the specified text
+    void SearchWidgetText ( TBStr searchText, TBValue &results );
+
+// ATOMIC END
+
     /** Return true if this widget is the same or a ancestor of other_widget. */
     bool IsAncestorOf(TBWidget *other_widget) const;
 
@@ -752,8 +772,9 @@ public:
         for widgets having multiple children by default, to specify which one that should get the children. */
     virtual TBWidget *GetContentRoot() { return this; }
 
-    /** Get this widget or a parent widget that is the absolute root parent. */
-    TBWidget *GetParentRoot();
+    /** Get this widget or a parent widget that is the absolute root parent
+        if view_root is true, will return the widget for the UIView attached to root widget */
+    TBWidget *GetParentRoot(bool view_root = true);
 
     /** Get the closest parent widget that is a TBWindow or nullptr if there is none.
         If this widget is a window itself, this will be returned. */
