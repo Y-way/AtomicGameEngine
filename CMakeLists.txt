@@ -1,7 +1,7 @@
 
 project(Atomic)
 
-cmake_minimum_required(VERSION 2.8.12.1)
+cmake_minimum_required(VERSION 3.3)
 
 set(ATOMIC_SOURCE_DIR ${Atomic_SOURCE_DIR})
 set(CMAKE_MODULE_PATH ${ATOMIC_SOURCE_DIR}/Build/CMake/Modules)
@@ -67,6 +67,9 @@ if (ATOMIC_DESKTOP AND ATOMIC_DEV_BUILD)
         set(ATOMIC_CPLUSPLUS_EXAMPLES 1)
     endif ()
     if (ATOMIC_CPLUSPLUS_EXAMPLES)
-        add_subdirectory(Submodules/AtomicExamples/FeatureExamples/CPlusPlus)
+        initialize_submodule(${ATOMIC_SOURCE_DIR}/Submodules/AtomicExamples ATOMIC_CPLUSPLUS_EXAMPLES)
+        if (ATOMIC_CPLUSPLUS_EXAMPLES)
+            add_subdirectory(Submodules/AtomicExamples/FeatureExamples/CPlusPlus)
+        endif ()
     endif ()
 endif ()

@@ -77,11 +77,11 @@ const String& MessageBox::GetMessage() const
 void MessageBox::RenderFrame(StringHash eventType, VariantMap& eventData)
 {
     using namespace MessageACK;
-    ImGui::SetNextWindowPos(windowPosition_, ImGuiSetCond_FirstUseEver);
+    ImGui::SetNextWindowPos(windowPosition_, ImGuiCond_FirstUseEver);
     if (ImGui::Begin(titleText_.CString(), &isOpen_, windowSize_, -1, ImGuiWindowFlags_NoCollapse|
                      ImGuiWindowFlags_NoSavedSettings))
     {
-        ImGui::Text(messageText_.CString());
+        ImGui::TextUnformatted(messageText_.CString());
         auto region = ImGui::GetContentRegionAvail();
         ImGui::SetCursorPos(ImVec2(region.x - 100 + 20, region.y + 20));
 

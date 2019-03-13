@@ -75,7 +75,10 @@ bool TypeInfo::IsTypeOf(const TypeInfo* typeInfo) const
 }
 
 Object::Object(Context* context) :
-    context_(context)
+    context_(context),
+    // ATOMIC BEGIN
+    blockEvents_(false)
+    // ATOMIC END
 {
     assert(context_);
 }
@@ -88,6 +91,11 @@ Object::~Object()
 
 void Object::OnEvent(Object* sender, StringHash eventType, VariantMap& eventData)
 {
+    // ATOMIC BEGIN
+    if (blockEvents_)
+        return;
+    // ATOMIC END
+
     // Make a copy of the context pointer in case the object is destroyed during event handler invocation
     Context* context = context_;
     EventHandler* specific = 0;
@@ -340,6 +348,11 @@ void Object::SendEventNonProfiled(StringHash eventType, VariantMap& eventData)
         return;
     }
 
+    // ATOMIC BEGIN
+    if (blockEvents_)
+        return;
+    // ATOMIC END
+
     // Make a weak pointer to self to check for destruction during event handling
     WeakPtr<Object> self(this);
     Context* context = context_;
@@ -358,7 +371,8 @@ void Object::SendEventNonProfiled(StringHash eventType, VariantMap& eventData)
     {
         group->BeginSendEvent();
 
-        for (unsigned i = 0; i < group->receivers_.Size(); ++i)
+        const unsigned numReceivers = group->receivers_.Size();
+        for (unsigned i = 0; i < numReceivers; ++i)
         {
             Object* receiver = group->receivers_[i];
             // Holes may exist if receivers removed during send
@@ -389,7 +403,8 @@ void Object::SendEventNonProfiled(StringHash eventType, VariantMap& eventData)
 
         if (processed.Empty())
         {
-            for (unsigned i = 0; i < group->receivers_.Size(); ++i)
+            const unsigned numReceivers = group->receivers_.Size();
+            for (unsigned i = 0; i < numReceivers; ++i)
             {
                 Object* receiver = group->receivers_[i];
                 if (!receiver)
@@ -408,7 +423,8 @@ void Object::SendEventNonProfiled(StringHash eventType, VariantMap& eventData)
         else
         {
             // If there were specific receivers, check that the event is not sent doubly to them
-            for (unsigned i = 0; i < group->receivers_.Size(); ++i)
+            const unsigned numReceivers = group->receivers_.Size();
+            for (unsigned i = 0; i < numReceivers; ++i)
             {
                 Object* receiver = group->receivers_[i];
                 if (!receiver || processed.Contains(receiver))
@@ -719,6 +735,12 @@ template <> DebugHud* Object::GetSubsystem<DebugHud>() const
 template <> Metrics* Object::GetSubsystem<Metrics>() const
 {
     return context_->metrics_;
+}
+
+void Object::SendEvent(StringHash eventType, const VariantMap& eventData)
+{
+    VariantMap eventDataCopy = eventData;
+    SendEvent(eventType, eventDataCopy);
 }
 
 // ATOMIC END

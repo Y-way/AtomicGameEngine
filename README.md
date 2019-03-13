@@ -1,25 +1,17 @@
 [AtomicLogo]: https://github.com/AtomicGameEngine/AtomicGameEngine/wiki/images/repo/Atomic-Game-Engine-512.png
 ![alt text][AtomicLogo]
 
-Website: <a href="https://www.atomicgameengine.com" target="_blank">https://www.AtomicGameEngine.com</a>
+#### Please note that Atomic is no longer actively being developed or maintained. Issues will not be attended to, though PRs that fix build issues may be considered. The remainder of this README has been kept in place for future reference.
 
-Email: contact@atomicgameengine.com
+Website: <a href="https://github.com/AtomicGameEngine/AtomicGameEngine" target="_blank">https://github.com/AtomicGameEngine/AtomicGameEngine</a>
 
 #### Why Atomic?
 
-<img align="right" src="https://atomicgameengine.com/images/home/WorldInstallMapHome.png"/>
-
-The Atomic Game Engine is powerful native technology with a consistent API and tooling available in C++, C#, and JavaScript.  The Atomic Editor is **installed in over 75 countries** and has hit “critical mass” with production in multiple industries.
+The Atomic Game Engine is powerful native technology with a consistent API and tooling available in C++, C#, Typescript and JavaScript. The Atomic Editor is **installed in over 75 countries** and has hit “critical mass” with production in multiple industries.
 
 Atomic can also be used as a library in existing projects with a C++ SDK, C# NuGet, and JavaScript npm package in development.
 
-Atomic is lead and evangelized by <a href="http://joshengebretson.com/" target="_blank">Josh Engebretson</a> with the help of contributors from around the world.
-
 #### Atomic Technology
-
-<img src="https://atomicgameengine.com/images/home/RoboBeach2017.png"/>  
-
-<img align="right" src="https://atomicgameengine.com/images/PlatformBox.png"/>
 
 - Consistent **2D/3D API** available in **JavaScript, TypeScript, C#, and C++**
 - Built-in Monaco JavaScript/TypeScript editor and support for **VSCode** and **Atom**
@@ -38,52 +30,22 @@ Atomic is lead and evangelized by <a href="http://joshengebretson.com/" target="
 
 ---
 
-### Downloads
+### Build Instructions
 
-Atomic Editor binary releases are managed by THUNDERBEAST GAMES LLC and scheduled as rolling build <a href="https://github.com/AtomicGameEngine/AtomicGameEngine/milestones" target="_blank">milestones.</a>
-
-**[Download the Atomic Editor](https://atomicgameengine.com/#download-the-atomic-editor)**
+The Atomic Editor can be built for your platform using these <a href="https://github.com/AtomicGameEngine/AtomicGameEngine/wiki/Building-Atomic-from-Source" target="_blank">build instructions.</a>
 
 #### Atomic Resources
 
 ##### Community
 
-<a href="https://discourse.atomicgameengine.com/">![](https://atomicgameengine.com/images/community/CommunitySupportPortal.png)</a>
-<a href="https://gitter.im/AtomicGameEngine/AtomicGameEngine/">![](https://atomicgameengine.com/images/community/Community_Chat.png)</a>
-<a href="https://atomicgameengine.com/blog/">![](https://atomicgameengine.com/images/community/Community_Blog.png)</a>
+<a href="https://discourse.atomicgameengine.com/">Discourse</a>  
+<a href="https://gitter.im/AtomicGameEngine/AtomicGameEngine/">Gitter Chat</a>
 
 ##### Documentation
 
-<a href="https://github.com/AtomicGameEngine/AtomicGameEngine/wiki/">![](https://atomicgameengine.com/images/community/Community_GitHub.png)</a>  
-
-##### API References
-
-<a href="http://docs.atomicgameengine.com/api/modules/atomic.html">![](https://atomicgameengine.com/images/community/Documentation_JSTS.png)</a>
-<a href="http://docs.atomicgameengine.com/csharp/AtomicEngine/">![](https://atomicgameengine.com/images/community/Documentation_CSharp.png)</a>
-<a href="http://docs.atomicgameengine.com/cpp">![](https://atomicgameengine.com/images/community/Documentation_CPlusPlus.png)</a>
+<a href="https://github.com/AtomicGameEngine/AtomicGameEngine/wiki/">Wiki</a>  
 
 ---
-
-### How to Help
-
-<img align="right" src="https://github.com/AtomicGameEngine/AtomicGameEngine/wiki/images/repo/atomic/wecandoit.jpg" style="margin-left:20px;"/>
-
-- Let others know about the Atomic Game Engine!
-- Answer questions and provide feedback in the [Atomic Community Support Forum](https://discourse.atomicgameengine.com/c/atomic-community-support) and [Atomic Chat](https://gitter.im/AtomicGameEngine/AtomicGameEngine)
-
-- Help maintain current and write new [Atomic Wiki](https://github.com/AtomicGameEngine/AtomicGameEngine/wiki) documentation articles
-
-- Fork [AtomicGameEngine/AtomicExamples](https://github.com/AtomicGameEngine/AtomicExamples) and submit a pull request with current example improvements or a new example
-
-- Help with issues marked [**```unassigned: help wanted```**](https://github.com/AtomicGameEngine/AtomicGameEngine/labels/unassigned%3A%20help%20wanted) in the [current build milestone](https://github.com/AtomicGameEngine/AtomicGameEngine/milestones)
-
-- Inform us of other ways to help that should be added here :)  
-
----
-
-#### Videos
-
-<a href="https://www.atomicgameengine.com" target="_blank">Atomic Game Engine 2016 Demo Reel</a>
 
 #### Screenshots
 
