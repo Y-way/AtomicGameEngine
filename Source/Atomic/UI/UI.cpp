@@ -1,4 +1,4 @@
-//
+﻿//
 // Copyright (c) 2014-2015, THUNDERBEAST GAMES LLC All rights reserved
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
